@@ -1,0 +1,16 @@
+[project]
+name = "gerenciamento-funcionarios"
+version = "0.1.0"
+description = "MVP de gerenciamento de funcionários com FastAPI"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "pydantic-settings",
+    "sqlalchemy",
+    "alembic",
+]
+
+[tool.ruff]
+line-length = 88
+
