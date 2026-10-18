@@ -67,3 +67,8 @@ dist/
 # Ferramentas locais
 .envrc
 .direnv/
+
+app/data/generated/*
+!app/data/generated/.gitkeep
+app/data/inbox/*
+!app/data/inbox/.gitkeep
