@@ -1,7 +1,5 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
-from app.core.database import get_db
 from app.schemas.historico import (
     HistoricoCriar,
     HistoricoDocumentoResposta,
@@ -19,16 +17,15 @@ def listar(
     busca: str | None = None,
     tipo: TipoDocumento | None = None,
     status: StatusDocumento | None = None,
-    db: Session = Depends(get_db),
 ):
-    return historico_service.listar(db, busca, tipo, status)
+    return historico_service.listar(busca, tipo, status)
 
 
 @router.get("/resumo", response_model=ResumoHistorico)
-def resumo(db: Session = Depends(get_db)):
-    return historico_service.resumo(db)
+def resumo():
+    return historico_service.resumo()
 
 
 @router.post("", response_model=HistoricoDocumentoResposta, status_code=201)
-def registrar(dados: HistoricoCriar, db: Session = Depends(get_db)):
-    return historico_service.registrar(db, dados)
+def registrar(dados: HistoricoCriar):
+    return historico_service.registrar(dados)

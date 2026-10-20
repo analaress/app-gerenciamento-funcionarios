@@ -1,5 +1,3 @@
-from sqlalchemy.orm import Session
-
 from app.repositories import historico_repository
 from app.schemas.historico import (
     HistoricoCriar,
@@ -10,26 +8,25 @@ from app.schemas.historico import (
 
 
 def listar(
-    db: Session,
     busca: str | None = None,
     tipo: TipoDocumento | None = None,
     status: StatusDocumento | None = None,
 ):
     return historico_repository.listar(
-        db, busca, tipo.value if tipo else None, status.value if status else None
+        busca, tipo.value if tipo else None, status.value if status else None
     )
 
 
-def resumo(db: Session) -> ResumoHistorico:
-    c = historico_repository.contar_por_status(db)
+def resumo() -> ResumoHistorico:
+    c = historico_repository.contar_por_status()
     return ResumoHistorico(
-        pendentes=c.get("PENDENTE", 0),
-        gerados=c.get("GERADO", 0) + c.get("ENVIADO", 0),
-        enviados=c.get("ENVIADO", 0),
-        com_erro=c.get("ERRO_GERACAO", 0) + c.get("ERRO_ENVIO", 0),
+        pendentes=c["PENDENTE"],
+        gerados=c["GERADO"] + c["ENVIADO"],
+        enviados=c["ENVIADO"],
+        com_erro=c["ERRO_GERACAO"] + c["ERRO_ENVIO"],
         total=sum(c.values()),
     )
 
 
-def registrar(db: Session, dados: HistoricoCriar):
-    return historico_repository.criar(db, dados.model_dump())
+def registrar(dados: HistoricoCriar):
+    return historico_repository.criar(dados.model_dump())

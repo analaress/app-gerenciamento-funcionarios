@@ -1,3 +1,5 @@
+#Vai validar os dados recebidos e definir o formato das informações enviadas pela API.
+
 from datetime import date
 from enum import Enum
 
