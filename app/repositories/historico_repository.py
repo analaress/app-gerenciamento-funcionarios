@@ -93,3 +93,14 @@ def criar(dados: dict) -> dict:
     registro = {"id": next(_proximo_id), **dados}
     _REGISTROS.append(registro)
     return registro
+
+
+def buscar(documento_id: int) -> dict | None:
+    return next((r for r in _REGISTROS if r["id"] == documento_id), None)
+
+
+def atualizar(documento_id: int, **campos) -> dict | None:
+    registro = buscar(documento_id)
+    if registro:
+        registro.update(campos)
+    return registro

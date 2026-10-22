@@ -1,3 +1,4 @@
+from datetime import date
 from app.repositories import historico_repository
 from app.schemas.historico import (
     HistoricoCriar,
@@ -30,3 +31,15 @@ def resumo() -> ResumoHistorico:
 
 def registrar(dados: HistoricoCriar):
     return historico_repository.criar(dados.model_dump())
+
+
+def atualizar_status(
+    documento_id: int,
+    status: StatusDocumento | str,
+    data_envio: date | None = None,
+):
+    """Troca o status de um documento. Devolve None se o documento não existir."""
+    campos = {"status": StatusDocumento(status).value}
+    if data_envio:
+        campos["data_envio"] = data_envio
+    return historico_repository.atualizar(documento_id, **campos)
