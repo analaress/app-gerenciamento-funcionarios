@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 1cm; }
+  * { box-sizing: border-box; }
+  body { font-family: sans-serif; font-size: 7.5pt; color: #000; margin: 0; }
+  h1 { font-size: 11pt; text-align: center; margin: 0 0 6px 0; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  td { border: 0.6pt solid #000; padding: 2px 4px; vertical-align: top; }
+  .rot { display: block; font-size: 6pt; color: #333; }
+  .val { display: block; font-size: 8pt; font-weight: bold; min-height: 11px; }
+  .gap { height: 5px; border: none; padding: 0; }
+  .secao td { background: #e6e6e6; font-weight: bold; text-align: center; font-size: 7pt; }
+  .rub td { height: 30px; }
+  .rub-val { display: block; min-height: 12px; text-align: right; font-size: 8pt; font-weight: bold; }
+  .ref { float: left; font-weight: normal; font-size: 6.5pt; color: #333; }
+  .total td { background: #f2f2f2; }
+  .liquido td { background: #d9d9d9; }
+  .assin td { height: 38px; }
+  .homolog td { font-size: 6.5pt; }
+  .linha-ass { margin-top: 18px; border-top: 0.6pt solid #000; padding-top: 1px; font-size: 6pt; }
+</style>
+</head>
+<body>
+
+{% macro campo(num, rotulo, valor) -%}
+<span class="rot">{{ num }}-{{ rotulo }}</span><span class="val">{{ valor if valor else "" }}</span>
+{%- endmacro %}
+
+{% macro rubrica(cod) -%}
+{% set it = itens.get(cod) -%}
+<span class="rot">{{ cod }}-{{ it.descricao if it else rubricas[cod][0] }}</span>
+<span class="rub-val">{% if it and it.referencia %}<span class="ref">{{ it.referencia }}</span>{% endif %}{{ (it.valor | brl) if it else "" }}</span>
+{%- endmacro %}
+
+{% macro total(cod, rotulo, valor) -%}
+<span class="rot">{{ cod }}-{{ rotulo }}</span><span class="rub-val">{{ valor | brl }}</span>
+{%- endmacro %}
+
+<h1>TERMO DE RESCISÃO DO CONTRATO DE TRABALHO</h1>
+
+<!-- EMPREGADOR -->
+<table>
+  <tr class="secao"><td colspan="12">EMPREGADOR</td></tr>
+  <tr>
+    <td colspan="4">{{ campo("01", "CNPJ", empresa.cnpj) }}</td>
+    <td colspan="8">{{ campo("02", "NOME", empresa.razao_social) }}</td>
+  </tr>
+  <tr>
+    <td colspan="8">{{ campo("03", "Endereço (logradouro, nº, andar, apartamento)", empresa.logradouro) }}</td>
+    <td colspan="4">{{ campo("04", "Bairro", empresa.bairro) }}</td>
+  </tr>
+  <tr>
+    <td colspan="3">{{ campo("05", "Município", empresa.municipio) }}</td>
+    <td colspan="1">{{ campo("06", "UF", empresa.uf) }}</td>
+    <td colspan="2">{{ campo("07", "CEP", empresa.cep) }}</td>
+    <td colspan="3">{{ campo("08", "CNAE", empresa.cnae) }}</td>
+    <td colspan="3">{{ campo("09", "CNPJ/CEI Tomador/O.", "") }}</td>
+  </tr>
+</table>
+<div class="gap"></div>
+
+<!-- TRABALHADOR -->
+<table>
+  <tr class="secao"><td colspan="12">TRABALHADOR</td></tr>
+  <tr>
+    <td colspan="4">{{ campo("10", "PIS-PASEP", colaborador.pis_pasep) }}</td>
+    <td colspan="8">{{ campo("11", "Nome", colaborador.nome) }}</td>
+  </tr>
+  <tr>
+    <td colspan="8">{{ campo("12", "Endereço (logradouro, nº, andar, apartamento)", colaborador.logradouro) }}</td>
+    <td colspan="4">{{ campo("13", "Bairro", colaborador.bairro) }}</td>
+  </tr>
+  <tr>
+    <td colspan="3">{{ campo("14", "Município", colaborador.municipio) }}</td>
+    <td colspan="1">{{ campo("15", "UF", colaborador.uf) }}</td>
+    <td colspan="2">{{ campo("16", "CEP", colaborador.cep) }}</td>
+    <td colspan="6">{{ campo("17", "Carteira de Trabalho (nº, série, UF)", colaborador.ctps) }}</td>
+  </tr>
+  <tr>
+    <td colspan="4">{{ campo("18", "CPF", colaborador.cpf) }}</td>
+    <td colspan="3">{{ campo("19", "Data Nascimento", colaborador.data_nascimento | data) }}</td>
+    <td colspan="5">{{ campo("20", "Nome da Mãe", colaborador.nome_mae) }}</td>
+  </tr>
+</table>
+<div class="gap"></div>
+
+<!-- CONTRATO -->
+<table>
+  <tr class="secao"><td colspan="12">CONTRATO</td></tr>
+  <tr>
+    <td colspan="3">{{ campo("21", "Remuneração p/ fins rescisórios", "R$ " ~ (rescisao.remuneracao | brl)) }}</td>
+    <td colspan="3">{{ campo("22", "Data de Admissão", colaborador.data_admissao | data) }}</td>
+    <td colspan="3">{{ campo("23", "Data do Aviso Prévio", rescisao.data_aviso_previo | data) }}</td>
+    <td colspan="3">{{ campo("24", "Data do Afastamento", rescisao.data_desligamento | data) }}</td>
+  </tr>
+  <tr>
+    <td colspan="5">{{ campo("25", "Causa do Afastamento", rescisao.causa_afastamento) }}</td>
+    <td colspan="2">{{ campo("26", "Código de Afastam.", rescisao.codigo_afastamento) }}</td>
+    <td colspan="2">{{ campo("27", "Pensão Aliment. %", (rescisao.pensao_alimenticia ~ "%") if rescisao.pensao_alimenticia is not none else "") }}</td>
+    <td colspan="3">{{ campo("28", "Cat. do Trabalhador", rescisao.categoria_trabalhador) }}</td>
+  </tr>
+</table>
+<div class="gap"></div>
+
+<!-- RUBRICAS -->
+<table class="rub">
+  <tr class="secao"><td style="width:34%">VALOR</td><td style="width:33%">VALOR</td><td style="width:33%">DEDUÇÕES</td></tr>
+  {% for a, b, c in [(29,38,47),(30,39,48),(31,40,49),(32,41,50),(33,42,51),(34,43,52),(35,44,53)] %}
+  <tr>
+    <td>{{ rubrica(a) }}</td>
+    <td>{{ rubrica(b) }}</td>
+    <td>{{ rubrica(c) }}</td>
+  </tr>
+  {% endfor %}
+  <tr>
+    <td>{{ rubrica(36) }}</td>
+    <td>{{ rubrica(45) }}</td>
+    <td class="total">{{ total(54, "TOTAL DAS DEDUÇÕES", rescisao.total_descontos) }}</td>
+  </tr>
+  <tr>
+    <td>{{ rubrica(37) }}</td>
+    <td class="total">{{ total(46, "TOTAL BRUTO", rescisao.total_proventos) }}</td>
+    <td class="liquido">{{ total(55, "LÍQUIDO A RECEBER", rescisao.total_liquido) }}</td>
+  </tr>
+</table>
+
+{% if rescisao.observacoes %}
+<div class="gap"></div>
+<table><tr><td><span class="rot">Observações</span><span class="val">{{ rescisao.observacoes }}</span></td></tr></table>
+{% endif %}
+<div class="gap"></div>
+
+<!-- ASSINATURAS -->
+<table class="assin">
+  <tr>
+    <td colspan="6"><span class="rot">56-Local e data do Recebimento</span></td>
+    <td colspan="6"><span class="rot">57-Carimbo e assinatura do Empregador/preposto</span></td>
+  </tr>
+  <tr>
+    <td colspan="6"><span class="rot">58-Assinatura do Trabalhador</span></td>
+    <td colspan="6"><span class="rot">59-Assinatura do responsável legal do trabalhador</span></td>
+  </tr>
+</table>
+<div class="gap"></div>
+
+<!-- HOMOLOGAÇÃO -->
+<table class="homolog">
+  <tr>
+    <td colspan="8" rowspan="2">
+      <span class="rot">60-HOMOLOGAÇÃO</span>
+      Foi prestada, gratuitamente, assistência ao trabalhador, nos termos do art. 477, § 1º, da
+      Consolidação das Leis do Trabalho - CLT, sendo comprovado, neste ato, o efetivo pagamento das
+      verbas rescisórias acima especificadas.
+      <div class="linha-ass">Local e Data</div>
+      <div class="linha-ass">63-Identificação do órgão homologador / Carimbo e assinatura do assistente</div>
+    </td>
+    <td colspan="2" style="height:50px"><span class="rot">61-Digital do trabalhador</span></td>
+    <td colspan="2"><span class="rot">62-Digital do resp. legal</span></td>
+  </tr>
+  <tr>
+    <td colspan="4" style="height:40px"><span class="rot">64-Recepção pelo Banco (data e carimbo)</span></td>
+  </tr>
+</table>
+
+</body>
+</html>

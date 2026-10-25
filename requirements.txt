@@ -1,6 +1,7 @@
-fastapi
+git add app/services/email_service.py app/services/pdf_service.py requirements.txtfastapi
 uvicorn[standard]
 pydantic-settings
 sqlalchemy
 alembic
 reportlab
+python-dotenv
