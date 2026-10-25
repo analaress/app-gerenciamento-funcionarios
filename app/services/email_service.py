@@ -1,10 +1,14 @@
 import os
 import smtplib
+from datetime import date
+
 from email.message import EmailMessage
 
 from dotenv import load_dotenv
 
 from app.repositories import email_repository
+
+from app.services import historico_service
 
 load_dotenv()  # lê as configurações do arquivo .env
 
@@ -66,7 +70,11 @@ def enviar_documento(
             erro = f"Falha no envio: {e}"
 
     status = "ERRO_ENVIO" if erro else "ENVIADO"
-    return email_repository.registrar(documento_id, destinatario, status, erro, simulado)
+    registro = email_repository.registrar(documento_id, destinatario, status, erro, simulado)
+    historico_service.atualizar_status(
+        documento_id, status, date.today() if status == "ENVIADO" else None
+    )
+    return registro
 """Envio de e-mail (SMTP) com o PDF da rescisão em anexo.
 
 As configurações vêm do arquivo .env (na raiz do projeto):
