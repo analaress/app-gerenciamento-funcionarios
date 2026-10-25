@@ -1,10 +1,11 @@
+from datetime import datetime
 from itertools import count
 from pathlib import Path
 
 from app.models.rescisao import RUBRICAS, ItemRescisao, Rescisao, StatusRescisao
 from app.repositories import colaborador_repository, empresa_repository
 from app.schemas.rescisao import MOTIVOS, RescisaoCriar
-from app.services import pdf_service
+from app.services import email_service, pdf_service
 from app.services.calculo_service import calcular_totais
 
 # .../app/services/rescisao_service.py -> raiz do projeto
@@ -15,6 +16,25 @@ PASTA_PDFS = RAIZ_PROJETO / "storage" / "documents" / "rescisoes"
 _RESCISOES: dict[int, Rescisao] = {}
 _proximo_id_rescisao = count(1)
 _proximo_id_item = count(1)
+
+# Registro das tentativas de envio por e-mail (também em memória): rescisao_id -> lista
+_ENVIOS: dict[int, list[dict]] = {}
+
+# Em quais situações ainda dá para corrigir os dados (a correção volta para EM_CONFERENCIA)
+_STATUS_CORRIGIVEIS = (
+    StatusRescisao.EM_CONFERENCIA,
+    StatusRescisao.GERADO,
+    StatusRescisao.ENVIADO,
+    StatusRescisao.ERRO_GERACAO,
+    StatusRescisao.ERRO_ENVIO,
+)
+
+# Em quais situações o PDF existe e pode ser enviado
+_STATUS_ENVIAVEIS = (
+    StatusRescisao.GERADO,
+    StatusRescisao.ENVIADO,
+    StatusRescisao.ERRO_ENVIO,
+)
 
 
 def _validar_causa(causa: str) -> None:
@@ -95,14 +115,16 @@ def listar_rescisoes() -> list[Rescisao]:
 
 
 def corrigir_rescisao(rescisao_id: int, dados: RescisaoCriar) -> Rescisao:
-    """Correção durante a conferência: só antes de gerar o PDF."""
+    """Correção manual dos dados. Se o PDF já existia, volta para EM_CONFERENCIA (precisa gerar de novo)."""
     rescisao = obter_rescisao(rescisao_id)
-    if rescisao.status != StatusRescisao.EM_CONFERENCIA:
-        raise ValueError("Só é possível corrigir rescisões em conferência")
+    if rescisao.status not in _STATUS_CORRIGIVEIS:
+        raise ValueError("Esta rescisão não pode ser corrigida no status atual")
     _validar_causa(dados.causa_afastamento)
 
     colaborador = colaborador_repository.obter(rescisao.colaborador_id)
     _aplicar_dados(rescisao, dados, colaborador.salario)
+    rescisao.status = StatusRescisao.EM_CONFERENCIA
+    rescisao.caminho_pdf = None  # o PDF antigo não vale mais
     return rescisao
 
 
@@ -142,3 +164,46 @@ def caminho_do_pdf(rescisao_id: int) -> Path:
     if not rescisao.caminho_pdf or not Path(rescisao.caminho_pdf).exists():
         raise FileNotFoundError("O PDF desta rescisão ainda não foi gerado")
     return Path(rescisao.caminho_pdf)
+
+
+def enviar_email(rescisao_id: int, destinatario: str | None = None) -> Rescisao:
+    """Envia o PDF por e-mail. Registra sucesso (ENVIADO) ou falha (ERRO_ENVIO)."""
+    rescisao = obter_rescisao(rescisao_id)
+    if rescisao.status not in _STATUS_ENVIAVEIS:
+        raise ValueError("Gere o PDF da rescisão antes de enviar por e-mail")
+
+    colaborador = colaborador_repository.obter(rescisao.colaborador_id)
+    destino = (destinatario or (colaborador.email if colaborador else "") or "").strip()
+    if "@" not in destino:
+        raise ValueError("Informe um e-mail de destinatário válido")
+
+    pdf = caminho_do_pdf(rescisao_id)
+    nome = colaborador.nome if colaborador else "colaborador(a)"
+    assunto = f"Termo de rescisão de contrato de trabalho — {nome}"
+    corpo = (
+        f"Olá,\n\nsegue em anexo o termo de rescisão de contrato de trabalho de {nome}.\n\n"
+        "Este e-mail foi enviado automaticamente."
+    )
+
+    registro = {
+        "destinatario": destino,
+        "data": datetime.now().isoformat(timespec="seconds"),
+        "sucesso": True,
+        "erro": None,
+    }
+    try:
+        email_service.enviar_email_com_anexo(destino, assunto, corpo, pdf)
+    except Exception as e:
+        rescisao.status = StatusRescisao.ERRO_ENVIO
+        registro.update(sucesso=False, erro=str(e))
+        _ENVIOS.setdefault(rescisao_id, []).append(registro)
+        raise RuntimeError(f"Falha ao enviar o e-mail: {e}") from e
+
+    rescisao.status = StatusRescisao.ENVIADO
+    _ENVIOS.setdefault(rescisao_id, []).append(registro)
+    return rescisao
+
+
+def listar_envios(rescisao_id: int) -> list[dict]:
+    obter_rescisao(rescisao_id)  # garante que a rescisão existe (404 se não)
+    return _ENVIOS.get(rescisao_id, [])

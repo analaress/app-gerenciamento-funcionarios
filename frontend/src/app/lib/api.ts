@@ -182,3 +182,12 @@ export function toRescisaoDoc(r: ApiRescisao, colaboradores: Colaborador[]): Res
     totalLiquido: Number(r.total_liquido),
   };
 }
+
+// ─── Envio por e-mail ───────────────────────────────────────────────────────
+
+/** Pede ao backend para enviar o PDF por e-mail. Se falhar, lança ApiError com o motivo. */
+export const enviarRescisao = (id: number, destinatario: string) =>
+  request<ApiRescisao>(`/rescisoes/${id}/enviar`, {
+    method: "POST",
+    body: JSON.stringify({ destinatario }),
+  });

@@ -6,6 +6,7 @@ import { Button } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Input } from "./ui/input";
 import { SendEmailFlow } from "./SendEmailFlow";
+import { ConferenciaEditor } from "./ConferenciaEditor";
 import { RescisaoPreview } from "./RescisaoPreview";
 import { calcularRescisao, Colaborador } from "../data/mockData";
 import {
@@ -14,14 +15,24 @@ import {
   RescisaoDoc,
   corrigirRescisao,
   criarRescisao,
+  enviarRescisao,
   gerarRescisao,
   getColaboradores,
   getMotivos,
   listarRescisoes,
+  obterRescisao,
   pdfUrl,
   toRescisaoDoc,
 } from "../lib/api";
-import { montarItens, motivoParaCalculo, totalBruto } from "../lib/rescisaoItens";
+import {
+  ItemEdicao,
+  edicaoParaPayload,
+  itensParaEdicao,
+  montarItens,
+  motivoParaCalculo,
+  temValorInvalido,
+  totalBruto,
+} from "../lib/rescisaoItens";
 
 const statusColors: Record<string, string> = {
   Pendente: "bg-amber-100 text-amber-700 hover:bg-amber-100",
@@ -46,6 +57,9 @@ interface WizardState {
   resultado?: ApiRescisao;
   error?: string;
   sendPhase: boolean;
+  /** valores da conferência (editáveis); vazio = ainda vale o cálculo automático */
+  itens?: ItemEdicao[];
+  observacoes?: string;
 }
 
 // ─── Wizard step indicator ───────────────────────────────────────────────────
@@ -100,6 +114,7 @@ function WizardPanel({
   motivos,
   onComplete,
   onRefresh,
+  onEnviar,
 }: {
   wizard: WizardState;
   setWizard: (w: WizardState | null) => void;
@@ -107,12 +122,52 @@ function WizardPanel({
   motivos: string[];
   onComplete: (doc: RescisaoDoc) => void;
   onRefresh: () => void;
+  onEnviar: (id: number, email: string) => Promise<void>;
 }) {
   const col = colaboradores.find((c) => c.id === wizard.colaboradorId);
   const valores =
     col && wizard.dataDesligamento && wizard.motivo
       ? calcularRescisao(col, wizard.dataDesligamento, motivoParaCalculo(wizard.motivo))
       : null;
+
+  /** Valores da conferência: os editados à mão ou, se ninguém mexeu, o cálculo automático. */
+  const calculados = () =>
+    col && valores ? itensParaEdicao(montarItens(col, valores, wizard.dataDesligamento)) : [];
+  const itensConferencia = wizard.itens ?? calculados();
+
+  const montarPayload = () => ({
+    colaborador_id: Number(col!.id),
+    data_desligamento: wizard.dataDesligamento,
+    causa_afastamento: wizard.motivo,
+    observacoes: wizard.observacoes?.trim() || null,
+    itens: edicaoParaPayload(itensConferencia),
+  });
+
+  const [salvando, setSalvando] = useState(false);
+  const [avisoSalvar, setAvisoSalvar] = useState<{ ok: boolean; texto: string } | null>(null);
+
+  /** Guarda as edições na API sem gerar o PDF (a rescisão fica "Em Conferência" e pode ser reaberta). */
+  const handleSalvar = async () => {
+    if (!col) return;
+    setSalvando(true);
+    setAvisoSalvar(null);
+    try {
+      const payload = montarPayload();
+      const salva = wizard.rescisaoId
+        ? await corrigirRescisao(wizard.rescisaoId, payload)
+        : await criarRescisao(payload);
+      setWizard({ ...wizard, rescisaoId: salva.id });
+      onComplete(toRescisaoDoc(salva, colaboradores));
+      setAvisoSalvar({ ok: true, texto: "Edições salvas. Você pode gerar o PDF agora ou continuar depois." });
+    } catch (e) {
+      setAvisoSalvar({
+        ok: false,
+        texto: e instanceof ApiError ? e.message : "Não foi possível salvar as edições.",
+      });
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   /** Cria (ou corrige) a rescisão na API e pede para o backend gerar o PDF. */
   const handleGenerate = async (apenasGerar = false) => {
@@ -121,12 +176,7 @@ function WizardPanel({
 
     let rescisaoId = wizard.rescisaoId;
     try {
-      const payload = {
-        colaborador_id: Number(col.id),
-        data_desligamento: wizard.dataDesligamento,
-        causa_afastamento: wizard.motivo,
-        itens: montarItens(col, valores, wizard.dataDesligamento),
-      };
+      const payload = montarPayload();
       // "apenasGerar": repetir só a geração do PDF (dados já salvos na API)
       if (!(apenasGerar && rescisaoId)) {
         const salva = rescisaoId
@@ -223,7 +273,7 @@ function WizardPanel({
             <Button
               className="flex-1 bg-red-700 hover:bg-red-800"
               disabled={!wizard.colaboradorId || !wizard.dataDesligamento || !wizard.motivo}
-              onClick={() => setWizard({ ...wizard, step: 2 })}
+              onClick={() => setWizard({ ...wizard, step: 2, itens: undefined })}
             >
               Próximo <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -282,7 +332,7 @@ function WizardPanel({
             </Button>
             <Button
               className="flex-1 bg-red-700 hover:bg-red-800"
-              onClick={() => setWizard({ ...wizard, step: 3 })}
+              onClick={() => setWizard({ ...wizard, step: 3, itens: wizard.itens ?? calculados() })}
             >
               Conferir <ChevronRight className="w-4 h-4 ml-1" />
             </Button>
@@ -290,16 +340,18 @@ function WizardPanel({
         </div>
       )}
 
-      {/* Step 3 — Conference */}
+      {/* Step 3 — Conferência (valores editáveis) */}
       {wizard.step === 3 && col && valores && (
-        <div className="max-w-lg space-y-5">
+        <div className="max-w-xl space-y-5">
           <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
             <div className="bg-red-700 px-6 py-5">
-              <p className="text-white font-semibold text-lg">Termo de Rescisão</p>
-              <p className="text-red-200 text-sm mt-0.5">{wizard.motivo}</p>
+              <p className="text-white font-semibold text-lg">Conferência da Rescisão</p>
+              <p className="text-red-200 text-sm mt-0.5">
+                {wizard.motivo} · confira e corrija os valores se necessário
+              </p>
             </div>
-            <div className="p-6 space-y-3">
-              <div className="pb-3 border-b border-gray-100">
+            <div className="p-6 space-y-5">
+              <div className="pb-4 border-b border-gray-100">
                 <p className="text-sm font-semibold text-gray-900">{col.nome}</p>
                 <p className="text-xs text-gray-500">{col.cargo} · CPF {col.cpf}</p>
                 <p className="text-xs text-gray-500">{col.empresa}</p>
@@ -308,39 +360,51 @@ function WizardPanel({
                   Desligamento: {new Date(wizard.dataDesligamento + "T12:00:00").toLocaleDateString("pt-BR")}
                 </p>
               </div>
-              <div className="space-y-1">
-                {[
-                  { label: "Saldo de Salário", value: valores.saldoSalario },
-                  { label: "Férias Proporcionais + 1/3", value: valores.feriasProporcionais + valores.tercoFerias },
-                  { label: "13º Proporcional", value: valores.decimoTerceiroProporcional },
-                  ...(valores.avisoPrevioIndenizado > 0
-                    ? [{ label: "Aviso Prévio", value: valores.avisoPrevioIndenizado }]
-                    : []),
-                  ...(valores.multaFgts > 0
-                    ? [{ label: "Multa FGTS 40% (informativo)", value: valores.multaFgts }]
-                    : []),
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex justify-between py-1.5">
-                    <span className="text-sm text-gray-600">{label}</span>
-                    <span className="text-sm font-medium text-gray-900">
-                      R$ {value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                ))}
-                <div className="flex justify-between pt-3 border-t-2 border-gray-200">
-                  <span className="font-bold text-gray-900">Total</span>
-                  <span className="text-lg font-bold text-red-700">
-                    R$ {totalBruto(valores).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
+              <ConferenciaEditor
+                itens={itensConferencia}
+                onChange={(itens) => setWizard({ ...wizard, itens })}
+                observacoes={wizard.observacoes ?? ""}
+                onObservacoes={(observacoes) => setWizard({ ...wizard, observacoes })}
+                onRestaurar={() => setWizard({ ...wizard, itens: calculados() })}
+                salario={col.salario}
+              />
+              {temValorInvalido(itensConferencia) && (
+                <p className="text-xs text-red-600">
+                  Há valores inválidos (destacados em vermelho). Use números, como 1234,56.
+                </p>
+              )}
             </div>
           </div>
-          <div className="flex gap-3">
+          {avisoSalvar && (
+            <div
+              className={`flex items-start gap-2 rounded-lg border px-4 py-2.5 text-sm ${
+                avisoSalvar.ok
+                  ? "bg-green-50 border-green-200 text-green-700"
+                  : "bg-red-50 border-red-200 text-red-700"
+              }`}
+            >
+              {avisoSalvar.ok ? <Check className="w-4 h-4 mt-0.5 flex-shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />}
+              <span>{avisoSalvar.texto}</span>
+            </div>
+          )}
+          <div className="flex flex-wrap gap-3">
             <Button variant="outline" onClick={() => setWizard({ ...wizard, step: 2 })} className="flex-1">
               Voltar
             </Button>
-            <Button className="flex-1 bg-red-700 hover:bg-red-800" onClick={() => handleGenerate()}>
+            <Button
+              variant="outline"
+              className="flex-1 gap-2"
+              disabled={salvando || temValorInvalido(itensConferencia) || edicaoParaPayload(itensConferencia).length === 0}
+              onClick={handleSalvar}
+            >
+              {salvando && <Loader2 className="w-4 h-4 animate-spin" />}
+              Salvar edições
+            </Button>
+            <Button
+              className="w-full bg-red-700 hover:bg-red-800"
+              disabled={temValorInvalido(itensConferencia) || edicaoParaPayload(itensConferencia).length === 0}
+              onClick={() => handleGenerate()}
+            >
               Gerar PDF
             </Button>
           </div>
@@ -380,6 +444,8 @@ function WizardPanel({
                 email={col.email}
                 docLabel={`Rescisão — ${new Date(wizard.dataDesligamento + "T12:00:00").toLocaleDateString("pt-BR")}`}
                 collaboratorName={col.nome}
+                pdfHref={wizard.rescisaoId ? pdfUrl(wizard.rescisaoId) : undefined}
+                onSend={(email) => onEnviar(wizard.rescisaoId!, email)}
                 onBack={() => setWizard({ ...wizard, sendPhase: false })}
                 onDone={() => setWizard(null)}
               />
@@ -412,6 +478,13 @@ function WizardPanel({
                     Enviar por E-mail
                   </Button>
                 </div>
+                <Button
+                  variant="outline"
+                  className="w-full mt-3"
+                  onClick={() => setWizard({ ...wizard, step: 3, sendPhase: false })}
+                >
+                  Corrigir dados
+                </Button>
                 <button
                   className="mt-4 text-sm text-gray-400 hover:text-gray-600 block mx-auto"
                   onClick={() => setWizard(null)}
@@ -480,9 +553,41 @@ export function Rescisoes() {
     navigate(location.pathname, { replace: true, state: null }); // limpa, para não reabrir ao atualizar
   }, [loading, colaboradores, location, navigate]);
 
-  // O envio por e-mail ainda é simulado no front (a API não tem rota de e-mail).
   const handleDocStatusUpdate = (docId: number, status: "Enviado" | "Erro Envio") => {
     setDocs((prev) => prev.map((d) => (d.id === docId ? { ...d, status } : d)));
+  };
+
+  /** Envia o PDF por e-mail pela API e já registra o resultado (Enviado / Erro Envio) na lista. */
+  const handleEnviar = async (id: number, email: string) => {
+    try {
+      await enviarRescisao(id, email);
+      handleDocStatusUpdate(id, "Enviado");
+    } catch (e) {
+      handleDocStatusUpdate(id, "Erro Envio");
+      throw e;
+    }
+  };
+
+  /** Reabre uma rescisão já gerada na conferência, com os valores salvos, para corrigir à mão. */
+  const handleCorrigir = async (doc: RescisaoDoc) => {
+    try {
+      const r = await obterRescisao(doc.id);
+      setSelectedId(null);
+      setDetailSend(false);
+      setWizard({
+        step: 3,
+        colaboradorId: doc.colaboradorId,
+        dataDesligamento: doc.dataDesligamento,
+        motivo: doc.motivoDesligamento,
+        rescisaoId: doc.id,
+        generating: false,
+        sendPhase: false,
+        itens: itensParaEdicao(r.itens),
+        observacoes: r.observacoes ?? "",
+      });
+    } catch (e) {
+      window.alert(e instanceof ApiError ? e.message : "Não foi possível abrir a rescisão para correção.");
+    }
   };
 
   const handleNew = () => {
@@ -597,6 +702,7 @@ export function Rescisoes() {
             motivos={motivos}
             onComplete={handleComplete}
             onRefresh={carregar}
+            onEnviar={handleEnviar}
           />
         )}
 
@@ -608,9 +714,10 @@ export function Rescisoes() {
                 ? new Date(selectedDoc.dataDesligamento + "T12:00:00").toLocaleDateString("pt-BR")
                 : ""}`}
               collaboratorName={selectedDoc.colaboradorNome}
+              pdfHref={pdfUrl(selectedDoc.id)}
+              onSend={(email) => handleEnviar(selectedDoc.id, email)}
               onBack={() => setDetailSend(false)}
               onDone={() => setDetailSend(false)}
-              onSendSuccess={() => handleDocStatusUpdate(selectedDoc.id, "Enviado")}
             />
           </div>
         )}
@@ -660,30 +767,36 @@ export function Rescisoes() {
                 )}
               </div>
             </div>
-            <div className="flex gap-3">
-              {selectedDoc.status === "Gerado" || selectedDoc.status === "Enviado" ? (
-                <Button asChild className="flex-1 gap-2 bg-red-700 hover:bg-red-800">
-                  <a href={pdfUrl(selectedDoc.id)} target="_blank" rel="noreferrer">
-                    <Download className="w-4 h-4" />
-                    Baixar PDF
-                  </a>
-                </Button>
-              ) : (
-                <Button className="flex-1 bg-red-700 hover:bg-red-800" onClick={() => handleProcessar(selectedDoc)}>
-                  Processar Rescisão
-                </Button>
-              )}
-              {(selectedDoc.status === "Gerado" || selectedDoc.status === "Erro Envio") && (
-                <Button
-                  variant="outline"
-                  className="flex-1 gap-2"
-                  onClick={() => setDetailSend(true)}
-                >
-                  <Send className="w-4 h-4" />
-                  {selectedDoc.status === "Erro Envio" ? "Reenviar" : "Enviar"}
-                </Button>
-              )}
-            </div>
+            {(() => {
+              const temPdf = ["Gerado", "Enviado", "Erro Envio"].includes(selectedDoc.status);
+              return (
+                <div className="flex flex-wrap gap-3">
+                  {temPdf ? (
+                    <Button asChild className="flex-1 gap-2 bg-red-700 hover:bg-red-800">
+                      <a href={pdfUrl(selectedDoc.id)} target="_blank" rel="noreferrer">
+                        <Download className="w-4 h-4" />
+                        Baixar PDF
+                      </a>
+                    </Button>
+                  ) : (
+                    <Button className="flex-1 bg-red-700 hover:bg-red-800" onClick={() => handleProcessar(selectedDoc)}>
+                      Processar Rescisão
+                    </Button>
+                  )}
+                  {temPdf && (
+                    <Button variant="outline" className="flex-1 gap-2" onClick={() => setDetailSend(true)}>
+                      <Send className="w-4 h-4" />
+                      {selectedDoc.status === "Gerado" ? "Enviar" : "Reenviar"}
+                    </Button>
+                  )}
+                  {temPdf && (
+                    <Button variant="outline" className="w-full" onClick={() => handleCorrigir(selectedDoc)}>
+                      Corrigir dados
+                    </Button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         )}
         {showEmpty && (

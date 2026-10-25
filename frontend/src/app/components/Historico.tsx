@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { Search, Download, FileX2, Loader2, RefreshCw } from "lucide-react";
+import { Search, Download, FileX2, Loader2, RefreshCw, Send } from "lucide-react";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { RescisaoPreview } from "./RescisaoPreview";
+import { SendEmailFlow } from "./SendEmailFlow";
 import type { Colaborador } from "../data/mockData";
 import {
   ApiError,
   ApiRescisao,
+  enviarRescisao,
   getColaboradores,
   listarRescisoes,
   pdfUrl,
@@ -17,6 +19,7 @@ import {
 const statusColors: Record<string, string> = {
   Gerado: "bg-purple-100 text-purple-700 hover:bg-purple-100",
   Enviado: "bg-green-100 text-green-700 hover:bg-green-100",
+  "Erro Envio": "bg-red-100 text-red-700 hover:bg-red-100",
 };
 
 const dataBr = (d: string) => new Date(d + "T12:00:00").toLocaleDateString("pt-BR");
@@ -29,14 +32,17 @@ export function Historico() {
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
   const carregar = useCallback(async () => {
     try {
       setErro(null);
       const [cols, lista] = await Promise.all([getColaboradores(), listarRescisoes()]);
       setColaboradores(cols);
-      // só as já geradas (PDF disponível)
-      setRescisoes(lista.filter((r) => r.status === "GERADO" || r.status === "ENVIADO"));
+      // só as já geradas (PDF disponível), incluindo as que tiveram falha no envio
+      setRescisoes(
+        lista.filter((r) => ["GERADO", "ENVIADO", "ERRO_ENVIO"].includes(r.status))
+      );
     } catch (e) {
       setErro(e instanceof ApiError ? e.message : "Erro ao carregar o histórico.");
     } finally {
@@ -117,7 +123,10 @@ export function Historico() {
           {filtrados.map((doc) => (
             <button
               key={doc.id}
-              onClick={() => setSelectedId(doc.id)}
+              onClick={() => {
+                setSelectedId(doc.id);
+                setEnviando(false);
+              }}
               className={`w-full text-left px-5 py-4 border-b border-gray-100 hover:bg-gray-50 transition-colors ${
                 selectedId === doc.id ? "bg-red-50 border-l-2 border-l-red-600" : ""
               }`}
@@ -141,17 +150,41 @@ export function Historico() {
       {/* Documento */}
       <div className="flex-1 overflow-y-auto bg-gray-50">
         {selecionada && selecionadaDoc ? (
-          <div className="p-8 max-w-3xl">
-            <RescisaoPreview rescisao={selecionada} col={selecionadaCol} />
-            <div className="flex gap-3 mt-5">
-              <Button asChild className="flex-1 gap-2 bg-red-700 hover:bg-red-800">
-                <a href={pdfUrl(selecionada.id)} target="_blank" rel="noreferrer">
-                  <Download className="w-4 h-4" />
-                  Baixar PDF
-                </a>
-              </Button>
+          enviando ? (
+            <div className="p-8">
+              <SendEmailFlow
+                email={selecionadaCol?.email ?? ""}
+                docLabel={`Rescisão — ${dataBr(selecionada.data_desligamento)}`}
+                collaboratorName={selecionadaDoc.colaboradorNome}
+                pdfHref={pdfUrl(selecionada.id)}
+                onSend={async (email) => {
+                  try {
+                    await enviarRescisao(selecionada.id, email);
+                  } finally {
+                    carregar(); // atualiza o status (Enviado / Erro Envio) na lista
+                  }
+                }}
+                onBack={() => setEnviando(false)}
+                onDone={() => setEnviando(false)}
+              />
             </div>
-          </div>
+          ) : (
+            <div className="p-8 max-w-3xl">
+              <RescisaoPreview rescisao={selecionada} col={selecionadaCol} />
+              <div className="flex gap-3 mt-5">
+                <Button asChild className="flex-1 gap-2 bg-red-700 hover:bg-red-800">
+                  <a href={pdfUrl(selecionada.id)} target="_blank" rel="noreferrer">
+                    <Download className="w-4 h-4" />
+                    Baixar PDF
+                  </a>
+                </Button>
+                <Button variant="outline" className="flex-1 gap-2" onClick={() => setEnviando(true)}>
+                  <Send className="w-4 h-4" />
+                  {selecionada.status === "GERADO" ? "Enviar por E-mail" : "Reenviar por E-mail"}
+                </Button>
+              </div>
+            </div>
+          )
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-gray-400">
             <FileX2 className="w-12 h-12 mb-3 opacity-30" />

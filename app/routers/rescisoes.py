@@ -1,10 +1,16 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from app.schemas.rescisao import MOTIVOS, VERBAS_SUGERIDAS, RescisaoCriar, RescisaoSaida
 from app.services import rescisao_service
 
 router = APIRouter(prefix="/rescisoes", tags=["Rescisões"])
+
+
+class EnviarEmailEntrada(BaseModel):
+    # se vier vazio, usa o e-mail cadastrado do colaborador
+    destinatario: str | None = None
 
 
 @router.get("/motivos")
@@ -42,6 +48,7 @@ def detalhar(rescisao_id: int):
 
 @router.put("/{rescisao_id}", response_model=RescisaoSaida)
 def corrigir(rescisao_id: int, dados: RescisaoCriar):
+    """Correção manual dos dados (também depois de gerada: volta para EM_CONFERENCIA)."""
     try:
         return rescisao_service.corrigir_rescisao(rescisao_id, dados)
     except LookupError as e:
@@ -77,3 +84,27 @@ def baixar_pdf(rescisao_id: int):
         media_type="application/pdf",
         filename=f"rescisao_{rescisao_id}.pdf",
     )
+
+
+@router.post("/{rescisao_id}/enviar", response_model=RescisaoSaida)
+def enviar(rescisao_id: int, dados: EnviarEmailEntrada | None = None):
+    """Envia o PDF por e-mail. Status vira ENVIADO (sucesso) ou ERRO_ENVIO (falha)."""
+    try:
+        return rescisao_service.enviar_email(rescisao_id, dados.destinatario if dados else None)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+
+
+@router.get("/{rescisao_id}/envios")
+def listar_envios(rescisao_id: int):
+    """Histórico de tentativas de envio (data, destinatário, sucesso/erro)."""
+    try:
+        return rescisao_service.listar_envios(rescisao_id)
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))

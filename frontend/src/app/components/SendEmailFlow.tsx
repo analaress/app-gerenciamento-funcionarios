@@ -12,6 +12,10 @@ interface Props {
   onBack: () => void;
   onDone: () => void;
   onSendSuccess?: () => void;
+  /** Envio real: se informado, é chamado ao confirmar (deve lançar erro se falhar). Sem ele, o envio é simulado. */
+  onSend?: (email: string) => Promise<void>;
+  /** Endereço do PDF, para o botão "Baixar PDF". */
+  pdfHref?: string;
 }
 
 export function SendEmailFlow({
@@ -21,12 +25,26 @@ export function SendEmailFlow({
   onBack,
   onDone,
   onSendSuccess,
+  onSend,
+  pdfHref,
 }: Props) {
   const [step, setStep] = useState<FlowStep>("confirm");
   const [email, setEmail] = useState(initialEmail);
+  const [erro, setErro] = useState<string | null>(null);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     setStep("sending");
+    setErro(null);
+    if (onSend) {
+      try {
+        await onSend(email.trim());
+        setStep("success");
+      } catch (e) {
+        setErro(e instanceof Error ? e.message : "Não foi possível enviar o e-mail.");
+        setStep("failed");
+      }
+      return;
+    }
     setTimeout(() => {
       const ok = Math.random() > 0.3;
       setStep(ok ? "success" : "failed");
@@ -130,10 +148,19 @@ export function SendEmailFlow({
         </div>
 
         <div className="flex gap-3 w-full">
-          <Button variant="outline" className="flex-1 gap-2">
-            <Download className="w-4 h-4" />
-            Baixar PDF
-          </Button>
+          {pdfHref ? (
+            <Button asChild variant="outline" className="flex-1 gap-2">
+              <a href={pdfHref} target="_blank" rel="noreferrer">
+                <Download className="w-4 h-4" />
+                Baixar PDF
+              </a>
+            </Button>
+          ) : (
+            <Button variant="outline" className="flex-1 gap-2">
+              <Download className="w-4 h-4" />
+              Baixar PDF
+            </Button>
+          )}
           <Button className="flex-1 bg-blue-700 hover:bg-blue-800" onClick={handleConcluir}>
             Concluir
           </Button>
@@ -163,21 +190,32 @@ export function SendEmailFlow({
         <X className="w-4 h-4 text-red-500 flex-shrink-0" />
       </div>
 
+      {erro && (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2 mb-3 w-full break-words">
+          {erro}
+        </p>
+      )}
       <p className="text-xs text-gray-400 mb-8 text-center">
         Verifique se o endereço está correto e tente novamente.
       </p>
 
       <div className="flex gap-3 w-full">
-        <Button variant="outline" className="flex-1 gap-2">
-          <Download className="w-4 h-4" />
-          Baixar PDF
-        </Button>
+        {pdfHref ? (
+          <Button asChild variant="outline" className="flex-1 gap-2">
+            <a href={pdfHref} target="_blank" rel="noreferrer">
+              <Download className="w-4 h-4" />
+              Baixar PDF
+            </a>
+          </Button>
+        ) : (
+          <Button variant="outline" className="flex-1 gap-2">
+            <Download className="w-4 h-4" />
+            Baixar PDF
+          </Button>
+        )}
         <Button
           className="flex-1 gap-2 bg-blue-700 hover:bg-blue-800"
-          onClick={() => {
-            setEmail(initialEmail);
-            setStep("confirm");
-          }}
+          onClick={() => setStep("confirm")}
         >
           <RefreshCw className="w-4 h-4" />
           Tentar Novamente
