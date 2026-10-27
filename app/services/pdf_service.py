@@ -1,3 +1,4 @@
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from io import BytesIO
 from pathlib import Path
@@ -5,6 +6,7 @@ from pathlib import Path
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
+from reportlab.lib.utils import simpleSplit
 from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.pdfgen import canvas
 
@@ -204,3 +206,199 @@ def salvar_pdf(nome_arquivo: str, conteudo: bytes, pasta: str = PASTA_PADRAO) ->
     caminho = destino / Path(nome_arquivo).name  # .name impede caminhos perigosos
     caminho.write_bytes(conteudo)
     return caminho
+
+
+# ---------------------------------------------------------------------------
+# Termo de Rescisão do Contrato de Trabalho
+# ---------------------------------------------------------------------------
+
+LARGURA_RESCISAO = 19.0 * cm
+OBRIGATORIOS_RESCISAO = [
+    "empregador_nome", "colaborador_nome", "colaborador_cpf",
+    "data_admissao", "data_afastamento", "causa_afastamento", "verbas",
+]
+CAMPOS_NUMERICOS = {"remuneracao"}
+
+# número do campo -> (nome na tela, unidade mostrada abaixo do nome)
+_VERBAS = {
+    29: ("Aviso Prévio Indenizado", "dias"), 30: ("Saldo Salário", "dias"),
+    31: ("13º Salário", "/12 avos"), 32: ("13º Salário Inden.", "/12 avos"),
+    33: ("Férias Vencidas", "/12 avos"), 34: ("1/3 sobre férias vencidas", ""),
+    35: ("Férias proporc.", "/12 avos"), 36: ("1/3 sob férias proporc.", ""),
+    37: ("Férias Indenizada", "/12 avos"), 38: ("1/3 sob férias indenizada", ""),
+    39: ("Reflexo extras DSR", ""), 40: ("Horas extras", "/horas"),
+    41: ("Horas Faltas Parcial", "/horas"), 42: ("FGTS 8%", "meses"),
+    43: ("FGTS Multa Rescis.", "40%"), 44: ("FGTS Mês rescisão/mês anterior", ""),
+    45: ("Faltas", ""), 46: ("TOTAL BRUTO", ""),
+    47: ("Previdência", ""), 48: ("Previdência 13º salário", ""),
+    49: ("Adiantamentos", ""), 50: ("IRRF", ""), 51: ("Aviso Prévio", ""),
+    52: ("Faltas", "dias"), 53: ("Outros descontos", ""),
+    54: ("TOTAL DAS DEDUÇÕES", ""), 55: ("LÍQUIDO A RECEBER", ""),
+}
+_TOTAIS = (46, 54, 55)
+
+# Cada linha: (altura em cm, [(largura em cm, rótulo, chave dos dados), ...])
+_EMPREGADOR = [
+    (1.0, [(4.8, "01-CNPJ", "empregador_cnpj"), (14.2, "02-NOME", "empregador_nome")]),
+    (1.0, [(15.0, "03-Endereço (logradouro, nº, andar, apartamento)", "empregador_endereco"),
+           (4.0, "04-Bairro", "empregador_bairro")]),
+    (1.0, [(8.0, "05-Município", "empregador_municipio"), (1.6, "06-UF", "empregador_uf"),
+           (3.2, "07-CEP", "empregador_cep"), (2.6, "08-CNAE", "empregador_cnae"),
+           (3.6, "09-CNPJ/CEI Tomador/O.", "tomador_cnpj")]),
+]
+_TRABALHADOR = [
+    (1.0, [(4.8, "10-PIS-PASEP", "colaborador_pis"), (14.2, "11-Nome", "colaborador_nome")]),
+    (1.0, [(15.0, "12-Endereço (logradouro, nº, andar, apartamento)", "colaborador_endereco"),
+           (4.0, "13-Bairro", "colaborador_bairro")]),
+    (1.0, [(8.0, "14-Município", "colaborador_municipio"), (1.6, "15-UF", "colaborador_uf"),
+           (3.2, "16-CEP", "colaborador_cep"),
+           (6.2, "17-Carteira de Trabalho (nº, série, UF)", "colaborador_ctps")]),
+    (1.0, [(4.0, "18-CPF", "colaborador_cpf"), (4.0, "19-Data Nascimento", "colaborador_nascimento"),
+           (11.0, "20-Nome da Mãe", "colaborador_mae")]),
+]
+_CONTRATO = [
+    (1.0, [(6.2, "21-Remuneração p/ fins rescisórios", "remuneracao"),
+           (4.2, "22-Data de Admissão", "data_admissao"),
+           (4.3, "23-Data do Aviso Prévio", "data_aviso_previo"),
+           (4.3, "24-Data do Afastamento", "data_afastamento")]),
+    (1.0, [(6.2, "25-Causa do Afastamento", "causa_afastamento"),
+           (4.2, "26-Código de Afastam.", "codigo_afastamento"),
+           (4.3, "27-Pensão Aliment. %", "pensao_alimenticia"),
+           (4.3, "28-Cat. do Trabalhador", "categoria_trabalhador")]),
+]
+_ASSINATURAS = [
+    (1.2, [(9.5, "56-Local e data do Recebimento", "local_data_recebimento"),
+           (9.5, "57-Carimbo e assin. do Empregador/preposto", None)]),
+    (1.2, [(9.5, "58-Assinatura do Trabalhador", None),
+           (9.5, "59-Assinatura do responsável legal do trabalhador", None)]),
+]
+_TEXTO_HOMOLOGACAO = (
+    "Foi prestada, gratuitamente, assistência ao trabalhador, nos termos do art. 477, "
+    "§ 1º, da Consolidação das Leis do Trabalho-CLT, sendo comprovado, neste ato, o "
+    "efetivo pagamento das verbas rescisórias acima especificadas."
+)
+
+
+def _fmt(valor) -> str:
+    """Datas viram dd/mm/aaaa; vazio vira ''; o resto vira texto."""
+    if valor is None:
+        return ""
+    if isinstance(valor, (date, datetime)):
+        return valor.strftime("%d/%m/%Y")
+    return str(valor)
+
+
+def _campo(c, x, topo, w, h, rotulo, valor="", tam=8.5):
+    c.rect(x, topo - h, w, h)
+    _texto(c, x + 0.12 * cm, topo - 0.3 * cm, rotulo, 6.5, largura=w - 0.24 * cm)
+    if valor:
+        _texto(c, x + 0.12 * cm, topo - h + 0.2 * cm, valor, tam, largura=w - 0.24 * cm)
+
+
+def _linhas(c, x0, topo, linhas, dados):
+    """Desenha as linhas de campos e devolve a nova posição vertical."""
+    for altura, campos in linhas:
+        x = x0
+        for largura, rotulo, chave in campos:
+            if chave in CAMPOS_NUMERICOS:
+                valor = _num(dados.get(chave))
+            else:
+                valor = _fmt(dados.get(chave)) if chave else ""
+            _campo(c, x, topo, largura * cm, altura * cm, rotulo, valor)
+            x += largura * cm
+        topo -= altura * cm
+    return topo
+
+
+def _verba(dados, numero):
+    verbas = dados.get("verbas", {})
+    item = verbas.get(numero, verbas.get(str(numero)))
+    if isinstance(item, dict):
+        return item.get("valor"), item.get("ref", "")
+    return item, ""
+
+
+def _bloco_verbas(c, x0, topo, dados):
+    colunas = [(29, 5.0, 1.7), (38, 4.9, 1.7), (47, 4.0, 1.7)]  # 1º campo, largura do nome, do valor
+    cab, linha = 0.6 * cm, 0.78 * cm
+    alt = cab + 9 * linha
+    c.rect(x0, topo - alt, LARGURA_RESCISAO, alt)
+    c.line(x0, topo - cab, x0 + LARGURA_RESCISAO, topo - cab)
+    x = x0
+    for i, (primeiro, wl, wv) in enumerate(colunas):
+        wl, wv = wl * cm, wv * cm
+        if i:
+            c.line(x, topo, x, topo - alt)
+        c.line(x + wl, topo - cab, x + wl, topo - alt)
+        if i < 2:
+            _texto(c, x + wl + wv / 2, topo - 0.4 * cm, "Valor", 7.5, alinhar="c")
+        else:
+            _texto(c, x + (wl + wv) / 2, topo - 0.4 * cm, "DEDUÇÕES", 8, True, "c")
+        for k in range(9):
+            numero = primeiro + k
+            nome, unidade = _VERBAS[numero]
+            ytopo = topo - cab - k * linha
+            if k:
+                c.line(x, ytopo, x + wl + wv, ytopo)
+            negrito = numero in _TOTAIS[1:]
+            _texto(c, x + 0.12 * cm, ytopo - 0.3 * cm, f"{numero}-{nome}", 7, negrito, largura=wl - 0.24 * cm)
+            valor, ref = _verba(dados, numero)
+            dica = f"{ref} {unidade}".strip() if ref not in (None, "") else unidade
+            if dica:
+                _texto(c, x + 0.12 * cm, ytopo - 0.62 * cm, dica, 6.5, largura=wl - 0.24 * cm)
+            _texto(c, x + wl + wv - 0.12 * cm, ytopo - 0.5 * cm, _num(valor), 8.5, negrito, "d")
+        x += wl + wv
+    return topo - alt
+
+
+def _homologacao(c, x0, topo, dados):
+    w, h = 9.5 * cm, 4.6 * cm
+    c.rect(x0, topo - h, w, h)
+    _texto(c, x0 + 0.12 * cm, topo - 0.3 * cm, "60-HOMOLOGAÇÃO", 6.5)
+    for i, linha in enumerate(simpleSplit(_TEXTO_HOMOLOGACAO, "Helvetica", 7, w - 0.24 * cm)):
+        _texto(c, x0 + 0.12 * cm, topo - (0.7 + i * 0.32) * cm, linha, 7)
+    for y, legenda in ((2.55, "Local e Data"), (3.3, "Carimbo e assinatura do assistente")):
+        c.line(x0 + 0.12 * cm, topo - y * cm, x0 + 6.5 * cm, topo - y * cm)
+        _texto(c, x0 + 0.12 * cm, topo - (y + 0.3) * cm, legenda, 7)
+    c.line(x0, topo - 3.75 * cm, x0 + w, topo - 3.75 * cm)
+    _texto(c, x0 + 0.12 * cm, topo - 4.05 * cm, "63-Identificação do órgão homologador", 6.5)
+    _texto(c, x0 + 0.12 * cm, topo - h + 0.2 * cm, _fmt(dados.get("orgao_homologador")), 8.5, largura=w - 0.24 * cm)
+
+    x = x0 + w
+    _campo(c, x, topo, 4.75 * cm, 3.4 * cm, "61-Digital do trabalhador")
+    _campo(c, x + 4.75 * cm, topo, 4.75 * cm, 3.4 * cm, "62-Digital do resp. legal")
+    _campo(c, x, topo - 3.4 * cm, w, 1.2 * cm, "64-Recepção pelo Banco (data e carimbo)")
+
+
+def gerar_rescisao_pdf(dados: dict) -> bytes:
+    """Desenha o Termo de Rescisão (1 página) e devolve o PDF em memória.
+
+    Este serviço só desenha: as verbas e os totais (campos 46, 54 e 55) já chegam calculados.
+    """
+    faltando = [k for k in OBRIGATORIOS_RESCISAO if k not in dados]
+    if faltando:
+        raise ValueError(f"Faltam dados para a rescisão: {', '.join(faltando)}")
+    for numero in _TOTAIS:
+        if _verba(dados, numero)[0] is None:
+            raise ValueError(f"Falta o valor do campo {numero} (os totais já devem chegar calculados).")
+
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    c.setTitle("Termo de Rescisão do Contrato de Trabalho")
+    c.setLineWidth(0.6)
+    x0 = 1.0 * cm
+    y = A4[1] - 1.5 * cm
+
+    c.rect(x0, y - 0.9 * cm, LARGURA_RESCISAO, 0.9 * cm)
+    _texto(c, x0 + LARGURA_RESCISAO / 2, y - 0.6 * cm, "TERMO DE RESCISÃO DO CONTRATO DE TRABALHO", 11, True, "c")
+    y -= 1.15 * cm
+
+    for secao in (_EMPREGADOR, _TRABALHADOR, _CONTRATO):
+        y = _linhas(c, x0, y, secao, dados) - 0.25 * cm
+    y = _bloco_verbas(c, x0, y, dados) - 0.25 * cm
+    y = _linhas(c, x0, y, _ASSINATURAS, dados) - 0.25 * cm
+    _homologacao(c, x0, y, dados)
+
+    c.showPage()
+    c.save()
+    return buffer.getvalue()
