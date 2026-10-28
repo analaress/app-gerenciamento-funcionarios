@@ -1,7 +1,20 @@
-from dataclasses import dataclass, field
+"""Modelos da rescisão (tabelas do banco).
+
+Tabelas: rescisoes, itens_rescisao, envios_rescisao.
+Os enums (StatusRescisao, TipoItem) e a tabela de rubricas (RUBRICAS) continuam aqui,
+com os mesmos nomes de antes: schemas e calculo_service importam daqui.
+"""
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
+
+from sqlalchemy import Boolean, Date, DateTime
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import ForeignKey, Integer, Numeric, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from app.core.database import Base
+from app.models.colaborador import Colaborador  # noqa: F401  (a tabela 'colaboradores' precisa estar carregada para a chave estrangeira)
 
 
 class StatusRescisao(str, Enum):
@@ -51,33 +64,86 @@ RUBRICAS: dict[int, tuple[str, TipoItem]] = {
 }
 
 
-@dataclass
-class ItemRescisao:
-    id: int
-    codigo: int
-    descricao: str
-    tipo: TipoItem
-    valor: Decimal
-    referencia: str | None = None   # ex.: "2/12 avos", "30 dias"
+class Rescisao(Base):
+    __tablename__ = "rescisoes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    colaborador_id: Mapped[int] = mapped_column(
+        ForeignKey("colaboradores.id"), nullable=False, index=True
+    )
+    # Sem chave estrangeira: a tabela 'empresas' ainda não existe (a empresa vem do empresa_repository).
+    empresa_id: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    data_aviso_previo: Mapped[date | None] = mapped_column(Date, nullable=True)  # campo 23
+    data_desligamento: Mapped[date] = mapped_column(Date, nullable=False)  # campo 24
+    causa_afastamento: Mapped[str] = mapped_column(String(120), nullable=False)  # campo 25
+    codigo_afastamento: Mapped[str | None] = mapped_column(String(10), nullable=True)  # campo 26
+    pensao_alimenticia: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)  # campo 27 (%)
+    categoria_trabalhador: Mapped[str] = mapped_column(
+        String(60), nullable=False, default="01 - Empregado"
+    )  # campo 28
+    remuneracao: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)  # campo 21
+    observacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Totais: sempre calculados pelo servidor (calculo_service), nunca digitados.
+    total_proventos: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)  # campo 46
+    total_descontos: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)  # campo 54
+    total_liquido: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False, default=0)  # campo 55
+
+    status: Mapped[StatusRescisao] = mapped_column(
+        SAEnum(StatusRescisao, native_enum=False, length=20),
+        nullable=False,
+        default=StatusRescisao.EM_CONFERENCIA,
+    )
+    caminho_pdf: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+
+    itens: Mapped[list["ItemRescisao"]] = relationship(
+        back_populates="rescisao",
+        cascade="all, delete-orphan",
+        order_by="ItemRescisao.codigo",
+        lazy="selectin",
+    )
+    envios: Mapped[list["EnvioRescisao"]] = relationship(
+        back_populates="rescisao",
+        cascade="all, delete-orphan",
+        order_by="EnvioRescisao.id",
+    )
 
 
-@dataclass
-class Rescisao:
-    id: int
-    colaborador_id: int
-    empresa_id: int
-    data_desligamento: date          # campo 24 (data do afastamento)
-    causa_afastamento: str           # campo 25
-    remuneracao: Decimal             # campo 21
-    itens: list[ItemRescisao]
-    total_proventos: Decimal         # campo 46 (TOTAL BRUTO)
-    total_descontos: Decimal         # campo 54 (TOTAL DAS DEDUÇÕES)
-    total_liquido: Decimal           # campo 55 (LÍQUIDO A RECEBER)
-    data_aviso_previo: date | None = None      # campo 23
-    codigo_afastamento: str | None = None      # campo 26
-    pensao_alimenticia: Decimal | None = None  # campo 27 (%)
-    categoria_trabalhador: str = "01 - Empregado"  # campo 28
-    observacoes: str | None = None
-    status: StatusRescisao = StatusRescisao.EM_CONFERENCIA
-    caminho_pdf: str | None = None
-    criado_em: datetime = field(default_factory=datetime.now)
+class ItemRescisao(Base):
+    __tablename__ = "itens_rescisao"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rescisao_id: Mapped[int] = mapped_column(
+        ForeignKey("rescisoes.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    # Cada código só aparece uma vez por rescisão. Isso é garantido pelo schema (RescisaoCriar),
+    # e não por uma restrição UNIQUE no banco, para não atrapalhar a troca dos itens na correção.
+    codigo: Mapped[int] = mapped_column(Integer, nullable=False)
+    descricao: Mapped[str] = mapped_column(String(120), nullable=False)
+    tipo: Mapped[TipoItem] = mapped_column(
+        SAEnum(TipoItem, native_enum=False, length=12), nullable=False
+    )
+    valor: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    referencia: Mapped[str | None] = mapped_column(String(40), nullable=True)  # ex.: "2/12 avos"
+
+    rescisao: Mapped["Rescisao"] = relationship(back_populates="itens")
+
+
+class EnvioRescisao(Base):
+    """Cada tentativa de envio do PDF por e-mail (sucesso ou falha)."""
+
+    __tablename__ = "envios_rescisao"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rescisao_id: Mapped[int] = mapped_column(
+        ForeignKey("rescisoes.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    destinatario: Mapped[str] = mapped_column(String(150), nullable=False)
+    data: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
+    sucesso: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    erro: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    rescisao: Mapped["Rescisao"] = relationship(back_populates="envios")

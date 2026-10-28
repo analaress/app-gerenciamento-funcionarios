@@ -1,8 +1,8 @@
-
 from alembic import context
 
 from app.core.database import Base, engine
 from app.models.colaborador import Colaborador
+from app.models.rescisao import EnvioRescisao, ItemRescisao, Rescisao  # noqa: F401
 
 
 target_metadata = Base.metadata
