@@ -95,3 +95,21 @@ routers → services → repositories → models
 ```
 
 Os `schemas` definem os contratos de entrada e saída da API.
+## Teste de e-mail local
+
+O envio padrão é mockado e grava o resultado em `app/data/emails_enviados.json`.
+
+Para visualizar mensagens localmente sem Docker, use o servidor SMTP embutido:
+
+Defina no ambiente:
+
+```powershell
+$env:EMAIL_PROVIDER="local"
+$env:SMTP_HOST="127.0.0.1"
+$env:SMTP_PORT="2525"
+$env:EMAIL_FROM="sistema@localhost"
+```
+
+Inicie a API e envie pelo formulário em `/ui/emails/novo`. A caixa de entrada local fica em `http://127.0.0.1:8000/ui/inbox` e o recibo XLSX é anexado automaticamente.
+
+O PDF é um preview simplificado dos dados principais do documento. O XLSX original preenchido continua sendo o anexo oficial.

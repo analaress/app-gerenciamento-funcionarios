@@ -9,6 +9,8 @@ dependencies = [
     "pydantic-settings",
     "sqlalchemy",
     "alembic",
+    "reportlab",
+    "openpyxl",
 ]
 
 [tool.ruff]
