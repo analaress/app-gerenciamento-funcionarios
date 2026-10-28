@@ -95,7 +95,7 @@ empresaForm.addEventListener("submit", async (event) => {
     try {
 
         const resposta = await fetch(
-            "http://127.0.0.1:8000/empresas",
+            "/empresas",
             {
                 method: "POST",
 
@@ -170,7 +170,7 @@ async function carregarEmpresas() {
     try {
 
         const resposta = await fetch(
-            "http://127.0.0.1:8000/empresas"
+            "/empresas"
         );
 
 
@@ -313,7 +313,7 @@ async function excluirEmpresa(empresaId) {
     try {
 
         const resposta = await fetch(
-            `http://127.0.0.1:8000/empresas/${empresaId}`,
+            `/empresas/${empresaId}`,
             {
                 method: "DELETE"
             }
