@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.paths import STATIC_DIR
 
-from app.routers import colaboradores, emails, empresas, historico, rescisoes
+from app.routers import colaboradores, emails, empresas, historico, rescisoes, ui
 
 
 app = FastAPI(title="Gerenciamento de Funcionários")
@@ -49,3 +49,4 @@ def tela_inicial():
 def favicon():
     return Response(status_code=204)
 app.include_router(rescisoes.router)
+app.include_router(ui.router)

@@ -9,3 +9,4 @@ Faker
 python-dotenv
 email-validator
 httpx
+jinja2
