@@ -9,7 +9,7 @@ from app.models.colaborador import Colaborador
 from app.models.empresa import Empresa
 from app.repositories import email_repository
 
-router = APIRouter(prefix="/ui", tags=["Interface HTML"])
+router = APIRouter(prefix="/painel", tags=["Interface HTML"])
 templates = Jinja2Templates(directory="templates")
 
 
@@ -32,7 +32,7 @@ def colaboradores(request: Request):
         )
 
 
-@router.get("/painel")
+@router.get("")
 def painel(request: Request):
     return templates.TemplateResponse(request=request, name="dashboard.html", context={})
 

@@ -27,12 +27,12 @@ app.include_router(emails.router)
 
 @app.get("/", tags=["Sistema"])
 def inicio():
-    return RedirectResponse(url="/ui/painel")
+    return RedirectResponse(url="/painel")
 
 
 @app.get("/ui", response_class=HTMLResponse, include_in_schema=False)
 def tela_inicial():
-    return RedirectResponse(url="/ui/painel")
+    return RedirectResponse(url="/painel")
 
 
 @app.get("/favicon.ico", include_in_schema=False)
