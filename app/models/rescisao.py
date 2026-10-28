@@ -1,7 +1,12 @@
-from dataclasses import dataclass, field
+
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
+
+from sqlalchemy import Date, DateTime, ForeignKey, Integer, JSON, Numeric, String
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.database import Base
 
 
 class StatusRescisao(str, Enum):
@@ -14,70 +19,46 @@ class StatusRescisao(str, Enum):
 
 
 class TipoItem(str, Enum):
-    PROVENTO = "PROVENTO"          # soma no TOTAL BRUTO (46)
-    DESCONTO = "DESCONTO"          # soma no TOTAL DAS DEDUÇÕES (54)
-    INFORMATIVO = "INFORMATIVO"    # aparece no documento, mas não entra no líquido
+    PROVENTO = "PROVENTO"
+    DESCONTO = "DESCONTO"
+    INFORMATIVO = "INFORMATIVO"
 
 
 P, D, I = TipoItem.PROVENTO, TipoItem.DESCONTO, TipoItem.INFORMATIVO
 
-# Rubricas do TRCT (modelo da mentora): código -> (descrição, tipo).
-# Os totais 46, 54 e 55 são calculados e não aparecem aqui.
 RUBRICAS: dict[int, tuple[str, TipoItem]] = {
-    29: ("Aviso Prévio Indenizado", P),
-    30: ("Saldo de Salário", P),
-    31: ("13º Salário", P),
-    32: ("13º Salário Inden.", P),
-    33: ("Férias Vencidas", P),
-    34: ("1/3 sobre férias vencidas", P),
-    35: ("Férias proporc.", P),
-    36: ("1/3 sob férias proporc.", P),
-    37: ("Outras verbas rescisórias", P),
-    38: ("1/3 sob férias indenizada", P),
-    39: ("Reflexo extras DSR", P),
-    40: ("Horas extras", P),
-    41: ("Horas faltas parcial", I),            
-    42: ("FGTS 8%", I),
-    43: ("FGTS multa rescis.", I),
-    44: ("FGTS mês rescisão/mês anterior", I),
-    45: ("Faltas", I),                           
-    47: ("Previdência", D),
-    48: ("Previdência 13º salário", D),
-    49: ("Adiantamentos", D),
-    50: ("IRRF", D),
-    51: ("Aviso Prévio", D),
-    52: ("Faltas", D),
-    53: ("Outros descontos", D),
+    29: ("Aviso Prévio Indenizado", P), 30: ("Saldo de Salário", P),
+    31: ("13º Salário", P), 32: ("13º Salário Inden.", P),
+    33: ("Férias Vencidas", P), 34: ("1/3 sobre férias vencidas", P),
+    35: ("Férias proporc.", P), 36: ("1/3 sob férias proporc.", P),
+    37: ("Outras verbas rescisórias", P), 38: ("1/3 sob férias indenizada", P),
+    39: ("Reflexo extras DSR", P), 40: ("Horas extras", P),
+    41: ("Horas faltas parcial", I), 42: ("FGTS 8%", I),
+    43: ("FGTS multa rescis.", I), 44: ("FGTS mês rescisão/mês anterior", I),
+    45: ("Faltas", I), 47: ("Previdência", D), 48: ("Previdência 13º salário", D),
+    49: ("Adiantamentos", D), 50: ("IRRF", D), 51: ("Aviso Prévio", D),
+    52: ("Faltas", D), 53: ("Outros descontos", D),
 }
 
 
-@dataclass
-class ItemRescisao:
-    id: int
-    codigo: int
-    descricao: str
-    tipo: TipoItem
-    valor: Decimal
-    referencia: str | None = None   # ex.: "2/12 avos", "30 dias"
+class Rescisao(Base):
+    __tablename__ = "rescisoes"
 
-
-@dataclass
-class Rescisao:
-    id: int
-    colaborador_id: int
-    empresa_id: int
-    data_desligamento: date          # campo 24 (data do afastamento)
-    causa_afastamento: str           # campo 25
-    remuneracao: Decimal             # campo 21
-    itens: list[ItemRescisao]
-    total_proventos: Decimal         # campo 46 (TOTAL BRUTO)
-    total_descontos: Decimal         # campo 54 (TOTAL DAS DEDUÇÕES)
-    total_liquido: Decimal           # campo 55 (LÍQUIDO A RECEBER)
-    data_aviso_previo: date | None = None      # campo 23
-    codigo_afastamento: str | None = None      # campo 26
-    pensao_alimenticia: Decimal | None = None  # campo 27 (%)
-    categoria_trabalhador: str = "01 - Empregado"  # campo 28
-    observacoes: str | None = None
-    status: StatusRescisao = StatusRescisao.EM_CONFERENCIA
-    caminho_pdf: str | None = None
-    criado_em: datetime = field(default_factory=datetime.now)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    colaborador_id: Mapped[int] = mapped_column(ForeignKey("colaboradores.id"), nullable=False)
+    empresa_id: Mapped[int] = mapped_column(ForeignKey("empresas.id"), nullable=False)
+    data_aviso_previo: Mapped[date | None] = mapped_column(Date)
+    data_desligamento: Mapped[date] = mapped_column(Date, nullable=False)
+    causa_afastamento: Mapped[str] = mapped_column(String(150), nullable=False)
+    codigo_afastamento: Mapped[str | None] = mapped_column(String(10))
+    pensao_alimenticia: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    categoria_trabalhador: Mapped[str] = mapped_column(String(100), nullable=False)
+    remuneracao: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    observacoes: Mapped[str | None] = mapped_column(String(1000))
+    total_proventos: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    total_descontos: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    total_liquido: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False)
+    caminho_pdf: Mapped[str | None] = mapped_column(String(500))
+    itens: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
+    criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)

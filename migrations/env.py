@@ -1,8 +1,15 @@
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from alembic import context
 
 from app.core.database import Base, engine
 from app.models.colaborador import Colaborador
+from app.models.empresa import Empresa
+from app.models.rescisao import Rescisao
 
 
 target_metadata = Base.metadata

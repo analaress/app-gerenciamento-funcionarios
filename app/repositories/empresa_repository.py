@@ -1,34 +1,73 @@
-"""Empresas de mentira (Faker). Quando o banco entrar, só este arquivo muda."""
-from faker import Faker
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from app.models.empresa import Empresa
+from app.schemas.empresa import EmpresaCriar, EmpresaAtualizar
 
-QTD_EMPRESAS = 3
 
-Faker.seed(42)  # mesmos dados a cada execução; apague a linha para dados novos sempre
-fake = Faker("pt_BR")
+def criar_empresa(db: Session, dados: EmpresaCriar) -> Empresa:
+    empresa = Empresa(**dados.model_dump())
 
-_EMPRESAS: dict[int, Empresa] = {
-    i: Empresa(
-        id=i,
-        razao_social=fake.company(),
-        cnpj=fake.cnpj(),
-        email=fake.company_email(),
-        logradouro=fake.street_address(),
-        bairro=fake.bairro(),
-        municipio=fake.city(),
-        uf=fake.estado_sigla(),
-        cep=fake.postcode(),
-        cnae=fake.numerify("####-#/##"),
+    db.add(empresa)
+    db.commit()
+    db.refresh(empresa)
+
+    return empresa
+
+
+def listar_empresas(db: Session) -> list[Empresa]:
+    resultado = db.execute(
+        select(Empresa)
     )
-    for i in range(1, QTD_EMPRESAS + 1)
-}
+
+    return list(resultado.scalars().all())
 
 
-def listar() -> list[Empresa]:
-    return list(_EMPRESAS.values())
+def buscar_empresa(
+    db: Session,
+    empresa_id: int
+) -> Empresa | None:
+
+    resultado = db.execute(
+        select(Empresa).where(Empresa.id == empresa_id)
+    )
+
+    return resultado.scalar_one_or_none()
 
 
-def obter(empresa_id: int) -> Empresa | None:
-    return _EMPRESAS.get(empresa_id)
+def buscar_por_cnpj(
+    db: Session,
+    cnpj: str
+) -> Empresa | None:
 
+    resultado = db.execute(
+        select(Empresa).where(Empresa.cnpj == cnpj)
+    )
+
+    return resultado.scalar_one_or_none()
+
+
+def atualizar_empresa(
+    db: Session,
+    empresa: Empresa,
+    dados: EmpresaAtualizar
+) -> Empresa:
+
+    dados_atualizados = dados.model_dump()
+
+    for campo, valor in dados_atualizados.items():
+        setattr(empresa, campo, valor)
+
+    db.commit()
+    db.refresh(empresa)
+
+    return empresa
+
+
+def excluir_empresa(
+    db: Session,
+    empresa: Empresa
+) -> None:
+
+    db.delete(empresa)
+    db.commit()

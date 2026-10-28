@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% block content %}
+
+<h1>E-mails simulados</h1>
+<p>Nenhuma mensagem é enviada para fora da aplicação.</p>
+<table>
+    <thead>
+        <tr>
+            <th>Data</th>
+            <th>Destinatário</th>
+            <th>Assunto</th>
+            <th>Mensagem</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>{% for email in emails %}<tr>
+            <td>{{ email.enviado_em }}</td>
+            <td>{{ email.destinatario }}</td>
+            <td>{{ email.assunto }}</td>
+            <td>{{ email.mensagem }}</td>
+            <td><span class="badge">{{ email.status }} · mock</span></td>
+        </tr>{% else %}<tr>
+            <td colspan="5">Nenhum e-mail simulado.</td>
+        </tr>{% endfor %}</tbody>
+</table>{% endblock %}

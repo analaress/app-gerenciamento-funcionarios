@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% block content %}
+
+<h1>Colaboradores</h1>
+<p>Cadastros persistidos em JSON.</p>
+<table>
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Cargo</th>
+            <th>Empresa</th>
+            <th>Salário</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>{% for c in colaboradores %}<tr>
+            <td>{{ c.nome }}</td>
+            <td>{{ c.email }}</td>
+            <td>{{ c.cargo }}</td>
+            <td>{% for e in empresas %}{% if e.id == c.empresa_id %}{{ e.nome }}{% endif %}{% endfor %}</td>
+            <td>R$ {{ "%.2f"|format(c.salario) }}</td>
+            <td>{% if c.ativo %}<span class="badge">Ativo</span>{% else %}Inativo{% endif %}</td>
+        </tr>{% else %}<tr>
+            <td colspan="6">Nenhum colaborador cadastrado.</td>
+        </tr>{% endfor %}</tbody>
+</table>{% endblock %}

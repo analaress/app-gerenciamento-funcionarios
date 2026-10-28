@@ -1,0 +1,65 @@
+[
+  {
+    "id": 1,
+    "empresa_id": 1,
+    "nome": "João da Silva",
+    "email": "joao@example.com",
+    "cargo": "Desenvolvedor",
+    "salario": 5000,
+    "ativo": true
+  },
+  {
+    "id": 2,
+    "nome": "Maria Teste",
+    "email": "maria.teste@example.com",
+    "cargo": "Analista",
+    "salario": 6250.5,
+    "ativo": true,
+    "empresa_id": 1
+  },
+  {
+    "id": 3,
+    "nome": "ana",
+    "email": "teste@com.br",
+    "cargo": "sddsd",
+    "salario": 5000.0,
+    "ativo": true,
+    "empresa_id": 1
+  },
+  {
+    "id": 4,
+    "nome": "deded",
+    "email": "teste@example.com",
+    "cargo": "xsxsx",
+    "salario": 600.0,
+    "ativo": true,
+    "empresa_id": 1
+  },
+  {
+    "id": 5,
+    "nome": "tedvdvdv",
+    "email": "dvdv@teste.com",
+    "cargo": "dvdvd",
+    "salario": 2500.0,
+    "ativo": true,
+    "empresa_id": 1
+  },
+  {
+    "id": 6,
+    "nome": "testeeee",
+    "email": "teste@teste.com",
+    "cargo": "dwdwd",
+    "salario": 5000.0,
+    "ativo": true,
+    "empresa_id": 1
+  },
+  {
+    "id": 7,
+    "nome": "teste",
+    "email": "teste@teste.com",
+    "cargo": "testeee",
+    "salario": 2890.0,
+    "ativo": true,
+    "empresa_id": 1
+  }
+]

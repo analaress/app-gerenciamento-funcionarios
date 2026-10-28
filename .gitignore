@@ -68,6 +68,7 @@ dist/
 .envrc
 .direnv/
 
-#frontend
-frontend/node_modules/
-frontend/dist/
+app/data/generated/*
+!app/data/generated/.gitkeep
+app/data/inbox/*
+!app/data/inbox/.gitkeep

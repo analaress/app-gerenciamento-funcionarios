@@ -1,10 +1,11 @@
-git add app/services/email_service.py app/services/pdf_service.py requirements.txtfastapi
+fastapi
 uvicorn[standard]
 pydantic-settings
 sqlalchemy
 alembic
 reportlab
+openpyxl
+Faker
 python-dotenv
 email-validator
-pytest
-httpx2
+httpx
