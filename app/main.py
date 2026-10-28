@@ -1,7 +1,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.core.paths import STATIC_DIR
@@ -27,11 +27,6 @@ app.include_router(emails.router)
 
 @app.get("/", tags=["Sistema"])
 def inicio():
-    return RedirectResponse(url="/painel")
-
-
-@app.get("/ui", response_class=HTMLResponse, include_in_schema=False)
-def tela_inicial():
     return RedirectResponse(url="/painel")
 
 
