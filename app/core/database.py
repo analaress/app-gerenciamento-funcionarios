@@ -1,16 +1,39 @@
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.core.config import settings
 
-# Sem DATABASE_URL no .env, usa um banco simples em arquivo (SQLite).
-URL = settings.database_url or "sqlite:///./app.db"
+class ConfiguracaoBanco(BaseSettings):
+    DATABASE_URL: str = "sqlite:///./colaboradores.db"
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_ignore_empty=True,
+        extra="ignore"
+    )
+
+
+config = ConfiguracaoBanco()
+
+# Configuração específica para SQLite
+configuracao_conexao = {}
+
+if config.DATABASE_URL.startswith("sqlite"):
+    configuracao_conexao = {
+        "check_same_thread": False
+    }
 
 engine = create_engine(
-    URL,
-    connect_args={"check_same_thread": False} if URL.startswith("sqlite") else {},
+    config.DATABASE_URL,
+    connect_args=configuracao_conexao
 )
-SessionLocal = sessionmaker(bind=engine, autoflush=False)
+
+SessionLocal = sessionmaker(
+    bind=engine,
+    autoflush=False,
+    expire_on_commit=False
+)
 
 
 class Base(DeclarativeBase):
@@ -18,8 +41,5 @@ class Base(DeclarativeBase):
 
 
 def get_db():
-    db = SessionLocal()
-    try:
+    with SessionLocal() as db:
         yield db
-    finally:
-        db.close()

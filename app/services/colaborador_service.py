@@ -1,32 +1,43 @@
+
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
-from app.repositories.colaborador_repository import ColaboradorRepository
-from app.repositories.empresa_repository import EmpresaRepository
+from app.repositories import colaborador_repository as repo
+from app.schemas.colaborador import ColaboradorCreate
 
 
-class ColaboradorService:
-    def __init__(self, repository=None, empresas=None):
-        self.repository = repository or ColaboradorRepository()
-        self.empresas = empresas or EmpresaRepository()
+def cadastrar(db: Session, dados: ColaboradorCreate):
+    existente = repo.buscar_por_cpf(db, dados.cpf)
 
-    def listar_por_empresa(self, empresa_id):
-        if not self.empresas.get_by_id(empresa_id): raise HTTPException(404, "Empresa não encontrada")
-        return self.repository.list_by_empresa(empresa_id)
+    if existente:
+        raise HTTPException(
+            status_code=409,
+            detail="CPF já cadastrado"
+        )
 
-    def buscar(self, colaborador_id):
-        item = self.repository.get_by_id(colaborador_id)
-        if not item: raise HTTPException(404, "Colaborador não encontrado")
-        return item
+    try:
+        return repo.criar(db, dados.model_dump())
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Conflito ao cadastrar colaborador"
+        )
 
-    def criar(self, empresa_id, data):
-        if not self.empresas.get_by_id(empresa_id): raise HTTPException(404, "Empresa não encontrada")
-        return self.repository.create({**data.model_dump(), "empresa_id": empresa_id})
 
-    def atualizar(self, colaborador_id, data):
-        item = self.buscar(colaborador_id)
-        if not self.empresas.get_by_id(item["empresa_id"]): raise HTTPException(404, "Empresa não encontrada")
-        return self.repository.update(colaborador_id, data.model_dump())
+def listar(db: Session):
+    return repo.listar(db)
 
-    def excluir(self, colaborador_id):
-        self.buscar(colaborador_id)
-        self.repository.delete(colaborador_id)
+def selecionar(db: Session, colaborador_id: int):
+    colaborador = repo.buscar_por_id(
+        db, colaborador_id
+    )
+
+    if not colaborador:
+        raise HTTPException(
+            status_code=404,
+            detail="Colaborador não encontrado"
+        )
+
+    return colaborador

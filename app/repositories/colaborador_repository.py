@@ -1,10 +1,31 @@
-from app.data import DATA_DIR
-from app.repositories.json_repository import JsonRepository
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.models.colaborador import Colaborador
 
 
-class ColaboradorRepository(JsonRepository):
-    def __init__(self):
-        super().__init__(DATA_DIR / "colaboradores.json")
+def criar(db: Session, dados: dict):
+    colaborador = Colaborador(**dados)
 
-    def list_by_empresa(self, empresa_id: int):
-        return [item for item in self.list() if item.get("empresa_id") == empresa_id]
+    db.add(colaborador)
+    db.commit()
+    db.refresh(colaborador)
+
+    return colaborador
+
+def listar(db: Session):
+    return db.scalars(
+        select(Colaborador).order_by(Colaborador.id)
+    ).all()
+
+
+def buscar_por_id(db: Session, colaborador_id: int):
+    return db.get(Colaborador, colaborador_id)
+
+def buscar_por_cpf(db: Session, cpf: str):
+    return db.scalar(
+        select(Colaborador).where(
+            Colaborador.cpf == cpf
+        )
+    )

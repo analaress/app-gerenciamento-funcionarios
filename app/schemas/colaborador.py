@@ -1,30 +1,13 @@
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, EmailStr
 
+class ColaboradorCreate(BaseModel):
+    nome: str = Field(min_length=2, max_length=150)
+    cpf: str = Field(pattern=r"^\d{11}$")
+    email: EmailStr
+    cargo: str = Field(min_length=2, max_length=100)
+    empresa_id: int = Field(gt=0)
 
-class ColaboradorBase(BaseModel):
-    nome: str = Field(min_length=2)
-    email: str = Field(min_length=5)
-    cargo: str = Field(min_length=2)
-    salario: float = Field(ge=0)
-    ativo: bool = True
-
-    @field_validator("email")
-    @classmethod
-    def validar_email(cls, value: str) -> str:
-        if "@" not in value or "." not in value.split("@")[-1]:
-            raise ValueError("e-mail inválido")
-        return value
-
-
-class ColaboradorCreate(ColaboradorBase):
-    pass
-
-
-class ColaboradorUpdate(ColaboradorBase):
-    pass
-
-
-class Colaborador(ColaboradorBase):
-    model_config = ConfigDict(from_attributes=True)
+class ColaboradorResponse(ColaboradorCreate):
     id: int
-    empresa_id: int
+
+    model_config = ConfigDict(from_attributes=True)
