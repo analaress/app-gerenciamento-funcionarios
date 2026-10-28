@@ -1,16 +1,9 @@
-from app.data import DATA_DIR
-from app.repositories.json_repository import JsonRepository
 from datetime import datetime
 from itertools import count
 
 
 _REGISTROS: list[dict] = []
 _proximo_id = count(1)
-
-
-class EmailRepository(JsonRepository):
-    def __init__(self):
-        super().__init__(DATA_DIR / "emails_enviados.json")
 
 
 def registrar(
