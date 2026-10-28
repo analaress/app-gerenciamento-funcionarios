@@ -97,7 +97,7 @@ routers → services → repositories → models
 Os `schemas` definem os contratos de entrada e saída da API.
 ## Teste de e-mail local
 
-O envio padrão é mockado e grava o resultado em `app/data/emails_enviados.json`.
+O envio padrão é simulado em memória durante a execução da aplicação.
 
 Para visualizar mensagens localmente sem Docker, use o servidor SMTP embutido:
 
