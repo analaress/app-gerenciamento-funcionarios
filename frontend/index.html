@@ -1,22 +1,467 @@
 <!DOCTYPE html>
-  <html lang="pt-BR" translate="no">
-    <head>
-      
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>gerenciamentofuncionarios</title>
-      <meta name="description" content="Streamline staff management with tools for leave tracking, duty rosters, and payroll processing designed for HR managers in any firm." />
-      <meta name="robots" content="noindex, nofollow" />
-      <meta name="google" content="notranslate" />
-      <style>html, body { height: 100%; margin: 0; } #root { height: 100%; }</style>
-      
-    </head>
+<html lang="pt-BR">
 
-    <body>
-      
-      <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
-      
-    </body>
-  </html>
-  
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Gerenciamento de Funcionários</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- MENU LATERAL -->
+    <aside class="sidebar">
+
+        <div class="logo">
+            <div class="logo-icon">P</div>
+
+            <div>
+                <strong>Player</strong>
+                <span>Contabilidade</span>
+            </div>
+        </div>
+
+        <!-- NAVEGAÇÃO -->
+        <nav class="menu">
+
+            <button class="menu-item active" data-page="dashboard">
+                <span>▦</span>
+                Dashboard
+            </button>
+
+            <button class="menu-item" data-page="empresa">
+                <span>🏢</span>
+                Empresa
+            </button>
+
+            <button class="menu-item" data-page="colaboradores">
+                <span>♙</span>
+                Colaboradores
+            </button>
+
+            <button class="menu-item" data-page="recibos">
+                <span>▣</span>
+                Recibos
+            </button>
+
+            <button class="menu-item" data-page="rescisao">
+                <span>▣</span>
+                Rescisões
+            </button>
+
+            <button class="menu-item" data-page="historico">
+                <span>◷</span>
+                Histórico
+            </button>
+
+        </nav>
+
+        <!-- USUÁRIO -->
+        <div class="user-area">
+
+            <div class="user-icon">RH</div>
+
+            <div>
+                <strong>RH Operacional</strong>
+                <span>rh@player.com.br</span>
+            </div>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ÁREA PRINCIPAL -->
+    <main class="main-content">
+
+        <!-- ========================= -->
+        <!-- DASHBOARD -->
+        <!-- ========================= -->
+
+        <section id="dashboard" class="page active-page">
+
+            <header class="page-header">
+
+                <div>
+                    <h1>Dashboard</h1>
+                    <p>Bem-vindo ao sistema de gerenciamento.</p>
+                </div>
+
+            </header>
+
+            <div class="dashboard-card">
+
+                <h2>Bem-vindo!</h2>
+
+                <p>
+                    Utilize o menu lateral para acessar as funcionalidades
+                    do sistema.
+                </p>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================= -->
+        <!-- EMPRESA -->
+        <!-- ========================= -->
+
+        <section id="empresa" class="page">
+
+            <header class="page-header">
+
+                <div>
+                    <h1>Empresa</h1>
+                    <p>Cadastre e consulte os dados da empresa.</p>
+                </div>
+
+            </header>
+
+
+            <!-- FORMULÁRIO -->
+            <div class="form-card">
+
+                <h2>Dados da empresa</h2>
+
+                <form id="empresa-form">
+
+                    <!-- DADOS PRINCIPAIS -->
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label for="razao-social">
+                                Razão Social
+                            </label>
+
+                            <input
+                                type="text"
+                                id="razao-social"
+                                name="razao_social"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="nome-fantasia">
+                                Nome Fantasia
+                            </label>
+
+                            <input
+                                type="text"
+                                id="nome-fantasia"
+                                name="nome_fantasia"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="cnpj">
+                                CNPJ
+                            </label>
+
+                            <input
+                                type="text"
+                                id="cnpj"
+                                name="cnpj"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="email">
+                                E-mail
+                            </label>
+
+                            <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="telefone">
+                                Telefone
+                            </label>
+
+                            <input
+                                type="tel"
+                                id="telefone"
+                                name="telefone"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- ENDEREÇO -->
+
+                    <h2>Endereço</h2>
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label for="cep">
+                                CEP
+                            </label>
+
+                            <input
+                                type="text"
+                                id="cep"
+                                name="cep"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="logradouro">
+                                Logradouro
+                            </label>
+
+                            <input
+                                type="text"
+                                id="logradouro"
+                                name="logradouro"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="numero">
+                                Número
+                            </label>
+
+                            <input
+                                type="text"
+                                id="numero"
+                                name="numero"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="complemento">
+                                Complemento
+                            </label>
+
+                            <input
+                                type="text"
+                                id="complemento"
+                                name="complemento"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="bairro">
+                                Bairro
+                            </label>
+
+                            <input
+                                type="text"
+                                id="bairro"
+                                name="bairro"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="cidade">
+                                Cidade
+                            </label>
+
+                            <input
+                                type="text"
+                                id="cidade"
+                                name="cidade"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label for="estado">
+                                Estado
+                            </label>
+
+                            <input
+                                type="text"
+                                id="estado"
+                                name="estado"
+                                maxlength="2"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- REPRESENTANTE -->
+
+                    <h2>Responsável</h2>
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label for="representante-legal">
+                                Representante Legal
+                            </label>
+
+                            <input
+                                type="text"
+                                id="representante-legal"
+                                name="representante_legal"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- BOTÃO -->
+
+                    <div class="form-actions">
+
+                        <button
+                            type="submit"
+                            class="btn-primary"
+                        >
+                            Cadastrar Empresa
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+
+            <!-- ========================= -->
+            <!-- EMPRESAS CADASTRADAS -->
+            <!-- ========================= -->
+
+            <div class="form-card empresas-lista-card">
+
+                <h2>Empresas cadastradas</h2>
+
+                <div id="lista-empresas">
+
+                    <p>Carregando empresas...</p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ========================= -->
+        <!-- COLABORADORES -->
+        <!-- ========================= -->
+
+        <section id="colaboradores" class="page">
+
+            <header class="page-header">
+                <h1>Colaboradores</h1>
+            </header>
+
+            <div class="empty-card">
+                <p>Área de colaboradores.</p>
+            </div>
+
+        </section>
+
+
+        <!-- ========================= -->
+        <!-- RECIBOS -->
+        <!-- ========================= -->
+
+        <section id="recibos" class="page">
+
+            <header class="page-header">
+                <h1>Recibos</h1>
+            </header>
+
+            <div class="empty-card">
+                <p>Área de recibos.</p>
+            </div>
+
+        </section>
+
+
+        <!-- ========================= -->
+        <!-- RESCISÕES -->
+        <!-- ========================= -->
+
+        <section id="rescisao" class="page">
+
+            <header class="page-header">
+                <h1>Rescisões</h1>
+            </header>
+
+            <div class="empty-card">
+                <p>Área de rescisões.</p>
+            </div>
+
+        </section>
+
+
+        <!-- ========================= -->
+        <!-- HISTÓRICO -->
+        <!-- ========================= -->
+
+        <section id="historico" class="page">
+
+            <header class="page-header">
+                <h1>Histórico</h1>
+            </header>
+
+            <div class="empty-card">
+                <p>Área de histórico de documentos.</p>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- JAVASCRIPT -->
+    <script src="script.js"></script>
+
+</body>
+
+</html>
