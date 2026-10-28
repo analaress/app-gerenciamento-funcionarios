@@ -91,3 +91,14 @@ class RescisaoSaida(BaseModel):
     status: StatusRescisao
     criado_em: datetime
     itens: list[ItemSaida]
+
+
+class EnvioSaida(BaseModel):
+    """Uma tentativa de envio do PDF por e-mail (sucesso ou falha)."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    destinatario: str
+    data: datetime
+    sucesso: bool
+    erro: str | None
