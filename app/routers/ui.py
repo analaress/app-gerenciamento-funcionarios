@@ -37,16 +37,6 @@ def painel(request: Request):
     return templates.TemplateResponse(request=request, name="dashboard.html", context={})
 
 
-@router.get("/colaboradores/novo")
-def novo_colaborador(request: Request):
-    with SessionLocal() as db:
-        empresas_db = db.scalars(select(Empresa).order_by(Empresa.id)).all()
-        return templates.TemplateResponse(
-            request=request, name="colaborador_form.html",
-            context={"empresas": [_empresa_view(e) for e in empresas_db]},
-        )
-
-
 @router.get("/emails")
 def emails(request: Request):
     return templates.TemplateResponse(
