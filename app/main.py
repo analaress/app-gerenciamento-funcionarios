@@ -18,7 +18,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
-app.mount("/app", StaticFiles(directory="frontend", html=True), name="frontend")
 
 app.include_router(empresas.router)
 app.include_router(colaboradores.router)
