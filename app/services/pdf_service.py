@@ -199,6 +199,18 @@ def gerar_recibo_pdf(dados: dict) -> bytes:
     return buffer.getvalue()
 
 
+def gerar_preview_recibo(nome: str, email: str, cargo: str, salario, destino: Path) -> Path:
+    """Compatibilidade para o serviço legado de documentos."""
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    destino.write_bytes(gerar_recibo_pdf({
+        "nome": nome,
+        "email": email,
+        "cargo": cargo,
+        "salario": salario,
+    }))
+    return destino
+
+
 def salvar_pdf(nome_arquivo: str, conteudo: bytes, pasta: str = PASTA_PADRAO) -> Path:
     """Grava o PDF numa pasta e devolve o caminho do arquivo."""
     destino = Path(pasta)

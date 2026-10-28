@@ -11,8 +11,8 @@ from app.services.pdf_service import gerar_preview_recibo
 
 class DocumentService:
     TEMPLATES = {
-        "recibo": TEMPLATES_DIR / "recibo_pagamento.xlsx",
-        "rescisao": TEMPLATES_DIR / "rescisao_por_fora.xlsx",
+        "recibo": TEMPLATES_DIR / "recibos" / "recibo_pagamento.xlsx",
+        "rescisao": TEMPLATES_DIR / "rescisoes" / "rescisao_por_fora.xlsx",
     }
 
     def gerar_anexo(self, colaborador: dict, tipo_documento: str) -> dict | None:
