@@ -1,3 +1,36 @@
+async function carregarLista(url, alvo, renderizar) {
+    const elemento = document.getElementById(alvo);
+    if (!elemento) return;
+    try {
+        const resposta = await fetch(url);
+        if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+        const dados = await resposta.json();
+        elemento.innerHTML = dados.length
+            ? dados.map(renderizar).join("")
+            : "<p>Nenhum registro encontrado.</p>";
+    } catch (erro) {
+        elemento.innerHTML = `<p>Não foi possível carregar: ${erro.message}</p>`;
+    }
+}
+
+function carregarColaboradores() {
+    return carregarLista("/colaboradores/", "lista-colaboradores", (item) =>
+        `<p><strong>${item.nome}</strong> — ${item.cargo || "Sem cargo"} — ${item.email}</p>`
+    );
+}
+
+function carregarRescisoes() {
+    return carregarLista("/rescisoes", "lista-rescisoes", (item) =>
+        `<p><strong>Rescisão #${item.id}</strong> — ${item.causa_afastamento} — ${item.status}</p>`
+    );
+}
+
+function carregarHistorico() {
+    return carregarLista("/historico", "lista-historico", (item) =>
+        `<p><strong>${item.tipo || "Documento"}</strong> — ${item.status || "Sem status"}</p>`
+    );
+}
+
 // ================================
 // NAVEGAÇÃO DO MENU
 // ================================
@@ -33,10 +66,15 @@ menuItems.forEach((item) => {
         if (pageId === "empresa") {
             carregarEmpresas();
         }
+        if (pageId === "colaboradores") carregarColaboradores();
+        if (pageId === "rescisao") carregarRescisoes();
+        if (pageId === "historico") carregarHistorico();
 
     });
 
 });
+
+carregarColaboradores();
 
 
 // ================================
