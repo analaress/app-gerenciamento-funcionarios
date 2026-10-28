@@ -1,4 +1,4 @@
-git add app/services/email_service.py app/services/pdf_service.py requirements.txtfastapi
+fastapi
 uvicorn[standard]
 pydantic-settings
 sqlalchemy
