@@ -32,6 +32,11 @@ def colaboradores(request: Request):
         )
 
 
+@router.get("/painel")
+def painel(request: Request):
+    return templates.TemplateResponse(request=request, name="dashboard.html", context={})
+
+
 @router.get("/colaboradores/novo")
 def novo_colaborador(request: Request):
     with SessionLocal() as db:
