@@ -1,19 +1,34 @@
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 
 
 class EmpresaBase(BaseModel):
-    nome: str = Field(min_length=2)
-    cnpj: str = Field(min_length=5)
+    razao_social: str
+    nome_fantasia: str
+    cnpj: str
+
+    email: str
+    telefone: str
+
+    cep: str | None = None
+    logradouro: str | None = None
+    numero: str | None = None
+    complemento: str | None = None
+    bairro: str | None = None
+    cidade: str | None = None
+    estado: str | None = None
+
+    representante_legal: str | None = None
 
 
-class EmpresaCreate(EmpresaBase):
+class EmpresaCriar(EmpresaBase):
     pass
 
 
-class EmpresaUpdate(EmpresaBase):
+class EmpresaAtualizar(EmpresaBase):
     pass
 
 
-class Empresa(EmpresaBase):
-    model_config = ConfigDict(from_attributes=True)
+class EmpresaResposta(EmpresaBase):
     id: int
+
+    model_config = ConfigDict(from_attributes=True)

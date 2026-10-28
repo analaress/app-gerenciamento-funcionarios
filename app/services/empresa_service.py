@@ -1,30 +1,81 @@
-from fastapi import HTTPException
+from sqlalchemy.orm import Session
 
-from app.repositories.colaborador_repository import ColaboradorRepository
-from app.repositories.empresa_repository import EmpresaRepository
-from app.schemas.empresa import EmpresaCreate, EmpresaUpdate
+from app.repositories import empresa_repository
+from app.schemas.empresa import EmpresaCriar, EmpresaAtualizar
 
 
-class EmpresaService:
-    def __init__(self, repository=None, colaboradores=None):
-        self.repository = repository or EmpresaRepository()
-        self.colaboradores = colaboradores or ColaboradorRepository()
+def criar_empresa(
+    db: Session,
+    dados: EmpresaCriar
+):
+    empresa_existente = empresa_repository.buscar_por_cnpj(
+        db,
+        dados.cnpj
+    )
 
-    def listar(self): return self.repository.list()
+    if empresa_existente:
+        raise ValueError(
+            "Já existe uma empresa cadastrada com este CNPJ."
+        )
 
-    def buscar(self, empresa_id):
-        item = self.repository.get_by_id(empresa_id)
-        if not item: raise HTTPException(404, "Empresa não encontrada")
-        return item
+    return empresa_repository.criar_empresa(
+        db,
+        dados
+    )
 
-    def criar(self, data: EmpresaCreate): return self.repository.create(data.model_dump())
 
-    def atualizar(self, empresa_id, data: EmpresaUpdate):
-        self.buscar(empresa_id)
-        return self.repository.update(empresa_id, data.model_dump())
+def listar_empresas(db: Session):
+    return empresa_repository.listar_empresas(db)
 
-    def excluir(self, empresa_id):
-        self.buscar(empresa_id)
-        if self.colaboradores.list_by_empresa(empresa_id):
-            raise HTTPException(409, "Empresa possui colaboradores")
-        self.repository.delete(empresa_id)
+
+def buscar_empresa(
+    db: Session,
+    empresa_id: int
+):
+    empresa = empresa_repository.buscar_empresa(
+        db,
+        empresa_id
+    )
+
+    if empresa is None:
+        raise ValueError("Empresa não encontrada.")
+
+    return empresa
+
+
+def atualizar_empresa(
+    db: Session,
+    empresa_id: int,
+    dados: EmpresaAtualizar
+):
+    empresa = empresa_repository.buscar_empresa(
+        db,
+        empresa_id
+    )
+
+    if empresa is None:
+        raise ValueError("Empresa não encontrada.")
+
+    return empresa_repository.atualizar_empresa(
+        db,
+        empresa,
+        dados
+    )
+
+
+def excluir_empresa(
+    db: Session,
+    empresa_id: int
+):
+    empresa = empresa_repository.buscar_empresa(
+        db,
+        empresa_id
+    )
+
+    if empresa is None:
+        raise ValueError("Empresa não encontrada.")
+
+    empresa_repository.excluir_empresa(
+        db,
+        empresa
+    )
