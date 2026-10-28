@@ -82,6 +82,8 @@ As configurações vêm do arquivo .env (na raiz do projeto):
 """
 import os
 import smtplib
+import re
+from datetime import datetime
 from email.message import EmailMessage
 from pathlib import Path
 
@@ -116,6 +118,38 @@ def _configuracao() -> dict:
     }
 
 
+# .../app/services/email_service.py -> raiz do projeto
+PASTA_EMAILS_SIMULADOS = (
+    Path(__file__).resolve().parents[2] / "storage" / "documents" / "temporary" / "emails_simulados"
+)
+
+
+def _simulado() -> bool:
+    """EMAIL_SIMULADO=true no .env: o e-mail é gravado num arquivo .eml, em vez de enviado."""
+    return os.getenv("EMAIL_SIMULADO", "").strip().lower() in ("1", "true", "sim", "yes")
+
+
+def _gravar_eml_simulado(destinatario: str, assunto: str, corpo: str, anexo: Path | None) -> Path:
+    """Monta o e-mail completo (com o PDF anexo) e salva como .eml. Nada sai do computador."""
+    mensagem = EmailMessage()
+    mensagem["From"] = os.getenv("SMTP_FROM", "").strip() or "simulado@localhost"
+    mensagem["To"] = destinatario
+    mensagem["Subject"] = assunto
+    mensagem.set_content(corpo)
+    if anexo is not None:
+        mensagem.add_attachment(
+            Path(anexo).read_bytes(),
+            maintype="application",
+            subtype="pdf",
+            filename=Path(anexo).name,
+        )
+    PASTA_EMAILS_SIMULADOS.mkdir(parents=True, exist_ok=True)
+    seguro = re.sub(r"[^A-Za-z0-9@._-]", "_", destinatario)
+    caminho = PASTA_EMAILS_SIMULADOS / f"{datetime.now():%Y%m%d_%H%M%S_%f}_{seguro}.eml"
+    caminho.write_bytes(mensagem.as_bytes())
+    return caminho
+
+
 def enviar_email_com_anexo(
     destinatario: str,
     assunto: str,
@@ -123,6 +157,10 @@ def enviar_email_com_anexo(
     anexo: Path | None = None,
 ) -> None:
     """Envia o e-mail. Levanta exceção se der qualquer problema (quem chamou registra a falha)."""
+    if _simulado():  # modo de teste: grava o .eml e não envia nada
+        _gravar_eml_simulado(destinatario, assunto, corpo, anexo)
+        return
+
     cfg = _configuracao()
 
     mensagem = EmailMessage()
