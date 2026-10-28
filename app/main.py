@@ -1,11 +1,12 @@
 
 from fastapi import FastAPI
 
-from app.routers.colaboradores import router as colaboradores_router
-from app.routers.rescisoes import router as rescisoes_router
+from app.routers import colaboradores, empresas, historico, rescisoes
 
 
 app = FastAPI(title="Gerenciamento de Funcionários")
 
-app.include_router(colaboradores_router)
-app.include_router(rescisoes_router)
+app.include_router(empresas.router)
+app.include_router(colaboradores.router)
+app.include_router(historico.router)
+app.include_router(rescisoes.router)

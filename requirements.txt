@@ -5,5 +5,7 @@ sqlalchemy
 alembic
 reportlab
 openpyxl
-
 Faker
+python-dotenv
+email-validator
+httpx
