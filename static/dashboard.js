@@ -1,42 +1,63 @@
 async function carregarLista(url, alvo, renderizar) {
     const elemento = document.getElementById(alvo);
+
     if (!elemento) return;
+
     try {
         const resposta = await fetch(url);
-        if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+
+        if (!resposta.ok) {
+            throw new Error(`HTTP ${resposta.status}`);
+        }
+
         const dados = await resposta.json();
+
         elemento.innerHTML = dados.length
             ? dados.map(renderizar).join("")
             : "<p>Nenhum registro encontrado.</p>";
+
     } catch (erro) {
-        elemento.innerHTML = `<p>Não foi possível carregar: ${erro.message}</p>`;
+        elemento.innerHTML =
+            `<p>Não foi possível carregar: ${erro.message}</p>`;
     }
 }
 
+
 function carregarColaboradores() {
-    return carregarLista("/colaboradores/", "lista-colaboradores", (item) =>
-        `<p><strong>${item.nome}</strong> — ${item.cargo || "Sem cargo"} — ${item.email}</p>`
+    return carregarLista(
+        "/colaboradores/",
+        "lista-colaboradores",
+        (item) =>
+            `<p><strong>${item.nome}</strong> — ${item.cargo || "Sem cargo"} — ${item.email}</p>`
     );
 }
+
 
 function carregarRescisoes() {
-    return carregarLista("/rescisoes", "lista-rescisoes", (item) =>
-        `<p><strong>Rescisão #${item.id}</strong> — ${item.causa_afastamento} — ${item.status}</p>`
+    return carregarLista(
+        "/rescisoes",
+        "lista-rescisoes",
+        (item) =>
+            `<p><strong>Rescisão #${item.id}</strong> — ${item.causa_afastamento} — ${item.status}</p>`
     );
 }
 
+
 function carregarHistorico() {
-    return carregarLista("/historico", "lista-historico", (item) =>
-        `<p><strong>${item.tipo || "Documento"}</strong> — ${item.status || "Sem status"}</p>`
+    return carregarLista(
+        "/historico",
+        "lista-historico",
+        (item) =>
+            `<p><strong>${item.tipo || "Documento"}</strong> — ${item.status || "Sem status"}</p>`
     );
 }
+
 
 // ================================
 // NAVEGAÇÃO DO MENU
 // ================================
 
 const menuItems = document.querySelectorAll(".menu-item");
-
 const pages = document.querySelectorAll(".page");
 
 menuItems.forEach((item) => {
@@ -61,33 +82,56 @@ menuItems.forEach((item) => {
             selectedPage.classList.add("active-page");
         }
 
-        // Quando entrar na página Empresa,
-        // atualiza a lista de empresas
         if (pageId === "empresa") {
             carregarEmpresas();
         }
-        if (pageId === "colaboradores") carregarColaboradores();
-        if (pageId === "rescisao") carregarRescisoes();
-        if (pageId === "historico") carregarHistorico();
+
+        if (pageId === "colaboradores") {
+            carregarColaboradores();
+        }
+
+        if (pageId === "rescisao") {
+            carregarRescisoes();
+        }
+
+        if (pageId === "historico") {
+            carregarHistorico();
+        }
 
     });
 
 });
 
+
 carregarColaboradores();
 
 
 // ================================
-// CADASTRO DE EMPRESA
+// ELEMENTOS DA EMPRESA
 // ================================
 
 const empresaForm = document.getElementById("empresa-form");
 
-empresaForm.addEventListener("submit", async (event) => {
+const btnEmpresaSubmit =
+    document.getElementById("btn-empresa-submit");
 
-    event.preventDefault();
+const btnCancelarEdicao =
+    document.getElementById("btn-cancelar-edicao");
 
-    const dadosEmpresa = {
+const listaEmpresas =
+    document.getElementById("lista-empresas");
+
+
+let empresaEditandoId = null;
+
+
+// ================================
+// PEGAR DADOS DO FORMULÁRIO
+// ================================
+
+function pegarDadosEmpresa() {
+
+    return {
 
         razao_social:
             empresaForm.elements["razao_social"].value,
@@ -127,69 +171,90 @@ empresaForm.addEventListener("submit", async (event) => {
 
         representante_legal:
             empresaForm.elements["representante_legal"].value
+
     };
 
+}
+
+
+// ================================
+// CADASTRAR / EDITAR EMPRESA
+// ================================
+
+empresaForm.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    const dadosEmpresa = pegarDadosEmpresa();
 
     try {
 
-        const resposta = await fetch(
-            "/empresas",
-            {
-                method: "POST",
+        if (empresaEditandoId !== null) {
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+            const resposta = await fetch(
+                `/empresas/${empresaEditandoId}`,
+                {
+                    method: "PUT",
 
-                body: JSON.stringify(dadosEmpresa)
-            }
-        );
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
 
-
-        if (!resposta.ok) {
-
-            throw new Error(
-                "Não foi possível cadastrar a empresa."
+                    body: JSON.stringify(dadosEmpresa)
+                }
             );
 
+            if (!resposta.ok) {
+                throw new Error(
+                    "Não foi possível atualizar a empresa."
+                );
+            }
+
+            alert("Empresa atualizada com sucesso!");
+
+        } else {
+
+            const resposta = await fetch(
+                "/empresas",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify(dadosEmpresa)
+                }
+            );
+
+            if (!resposta.ok) {
+                throw new Error(
+                    "Não foi possível cadastrar a empresa."
+                );
+            }
+
+            alert("Empresa cadastrada com sucesso!");
         }
-
-
-        const empresaCadastrada =
-            await resposta.json();
-
-
-        console.log(
-            "Empresa cadastrada:",
-            empresaCadastrada
-        );
-
-
-        alert(
-            "Empresa cadastrada com sucesso!"
-        );
 
 
         empresaForm.reset();
 
+        sairDoModoEdicao();
 
-        // Atualiza a lista depois do cadastro
         carregarEmpresas();
 
 
     } catch (erro) {
 
         console.error(
-            "Erro ao cadastrar empresa:",
+            "Erro ao salvar empresa:",
             erro
         );
 
-
         alert(
-            "Erro ao cadastrar a empresa. " +
+            "Erro ao salvar a empresa. " +
             "Verifique se o backend está funcionando."
         );
-
     }
 
 });
@@ -199,31 +264,19 @@ empresaForm.addEventListener("submit", async (event) => {
 // LISTAGEM DE EMPRESAS
 // ================================
 
-const listaEmpresas =
-    document.getElementById("lista-empresas");
-
-
 async function carregarEmpresas() {
 
     try {
 
-        const resposta = await fetch(
-            "/empresas"
-        );
-
+        const resposta = await fetch("/empresas");
 
         if (!resposta.ok) {
-
             throw new Error(
                 "Não foi possível carregar as empresas."
             );
-
         }
 
-
-        const empresas =
-            await resposta.json();
-
+        const empresas = await resposta.json();
 
         listaEmpresas.innerHTML = "";
 
@@ -235,7 +288,6 @@ async function carregarEmpresas() {
             `;
 
             return;
-
         }
 
 
@@ -244,51 +296,165 @@ async function carregarEmpresas() {
             const empresaCard =
                 document.createElement("div");
 
-
-            empresaCard.classList.add(
-                "empresa-item"
-            );
+            empresaCard.classList.add("empresa-item");
 
 
             empresaCard.innerHTML = `
 
-                <div>
+                <div class="empresa-resumo">
 
-                    <h3>
-                        ${empresa.razao_social}
-                    </h3>
+                    <div class="empresa-info-principal">
 
-                    <p>
-                        <strong>Nome Fantasia:</strong>
-                        ${empresa.nome_fantasia}
-                    </p>
+                        <h3>
+                            ${empresa.razao_social}
+                        </h3>
 
-                    <p>
-                        <strong>CNPJ:</strong>
-                        ${empresa.cnpj}
-                    </p>
+                        <p>
+                            ${empresa.nome_fantasia}
+                        </p>
 
-                    <p>
-                        <strong>E-mail:</strong>
-                        ${empresa.email}
-                    </p>
+                        <p>
+                            <strong>CNPJ:</strong>
+                            ${empresa.cnpj}
+                        </p>
 
-                    <p>
-                        <strong>Telefone:</strong>
-                        ${empresa.telefone}
-                    </p>
+                    </div>
 
-                    <p>
-                        <strong>Cidade:</strong>
-                        ${empresa.cidade ?? "-"}
-                    </p>
 
-                    <p>
-                        <strong>Estado:</strong>
-                        ${empresa.estado ?? "-"}
-                    </p>
+                    <div class="empresa-contatos">
+
+                        <p>
+                            <strong>E-mail:</strong>
+                            ${empresa.email}
+                        </p>
+
+                        <p>
+                            <strong>Telefone:</strong>
+                            ${empresa.telefone}
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    type="button"
+                    class="btn-detalhes"
+                    onclick="mostrarDetalhesEmpresa(${empresa.id}, this)"
+                >
+                    Ver detalhes
+                </button>
+
+
+                <div
+                    class="empresa-detalhes"
+                    id="detalhes-empresa-${empresa.id}"
+                    style="display: none;"
+                >
+
+                    <div class="detalhes-secao">
+
+                        <h4>Dados da empresa</h4>
+
+                        <div class="detalhes-grid">
+
+                            <p>
+                                <strong>Razão Social:</strong><br>
+                                ${empresa.razao_social || "-"}
+                            </p>
+
+                            <p>
+                                <strong>Nome Fantasia:</strong><br>
+                                ${empresa.nome_fantasia || "-"}
+                            </p>
+
+                            <p>
+                                <strong>CNPJ:</strong><br>
+                                ${empresa.cnpj || "-"}
+                            </p>
+
+                            <p>
+                                <strong>E-mail:</strong><br>
+                                ${empresa.email || "-"}
+                            </p>
+
+                            <p>
+                                <strong>Telefone:</strong><br>
+                                ${empresa.telefone || "-"}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="detalhes-secao">
+
+                        <h4>Endereço</h4>
+
+                        <div class="detalhes-grid">
+
+                            <p>
+                                <strong>CEP:</strong><br>
+                                ${empresa.cep || "-"}
+                            </p>
+
+                            <p>
+                                <strong>Logradouro:</strong><br>
+                                ${empresa.logradouro || "-"}
+                            </p>
+
+                            <p>
+                                <strong>Número:</strong><br>
+                                ${empresa.numero || "-"}
+                            </p>
+
+                            <p>
+                                <strong>Complemento:</strong><br>
+                                ${empresa.complemento || "-"}
+                            </p>
+
+                            <p>
+                                <strong>Bairro:</strong><br>
+                                ${empresa.bairro || "-"}
+                            </p>
+
+                            <p>
+                                <strong>Cidade:</strong><br>
+                                ${empresa.cidade || "-"}
+                            </p>
+
+                            <p>
+                                <strong>Estado:</strong><br>
+                                ${empresa.estado || "-"}
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="detalhes-secao">
+
+                        <h4>Representante Legal</h4>
+
+                        <p>
+                            ${empresa.representante_legal || "-"}
+                        </p>
+
+                    </div>
+
 
                     <div class="empresa-acoes">
+
+                        <button
+                            type="button"
+                            class="btn-primary"
+                            onclick="editarEmpresa(${empresa.id})"
+                        >
+                            Editar
+                        </button>
 
                         <button
                             type="button"
@@ -305,9 +471,7 @@ async function carregarEmpresas() {
             `;
 
 
-            listaEmpresas.appendChild(
-                empresaCard
-            );
+            listaEmpresas.appendChild(empresaCard);
 
         });
 
@@ -319,14 +483,170 @@ async function carregarEmpresas() {
             erro
         );
 
-
         listaEmpresas.innerHTML = `
             <p>
                 Erro ao carregar as empresas.
             </p>
         `;
+    }
+
+}
+
+
+// ================================
+// MOSTRAR / ESCONDER DETALHES
+// ================================
+
+function mostrarDetalhesEmpresa(empresaId, botao) {
+
+    const detalhes =
+        document.getElementById(
+            `detalhes-empresa-${empresaId}`
+        );
+
+
+    if (!detalhes) {
+        return;
+    }
+
+
+    if (detalhes.style.display === "none") {
+
+        detalhes.style.display = "block";
+
+        botao.textContent = "Ocultar detalhes";
+
+    } else {
+
+        detalhes.style.display = "none";
+
+        botao.textContent = "Ver detalhes";
+    }
+
+}
+
+
+// ================================
+// EDITAR EMPRESA
+// ================================
+
+async function editarEmpresa(empresaId) {
+
+    try {
+
+        const resposta = await fetch(
+            `/empresas/${empresaId}`
+        );
+
+        if (!resposta.ok) {
+
+            throw new Error(
+                "Não foi possível carregar os dados da empresa."
+            );
+        }
+
+
+        const empresa =
+            await resposta.json();
+
+
+        empresaEditandoId = empresa.id;
+
+
+        empresaForm.elements["razao_social"].value =
+            empresa.razao_social ?? "";
+
+        empresaForm.elements["nome_fantasia"].value =
+            empresa.nome_fantasia ?? "";
+
+        empresaForm.elements["cnpj"].value =
+            empresa.cnpj ?? "";
+
+        empresaForm.elements["email"].value =
+            empresa.email ?? "";
+
+        empresaForm.elements["telefone"].value =
+            empresa.telefone ?? "";
+
+        empresaForm.elements["cep"].value =
+            empresa.cep ?? "";
+
+        empresaForm.elements["logradouro"].value =
+            empresa.logradouro ?? "";
+
+        empresaForm.elements["numero"].value =
+            empresa.numero ?? "";
+
+        empresaForm.elements["complemento"].value =
+            empresa.complemento ?? "";
+
+        empresaForm.elements["bairro"].value =
+            empresa.bairro ?? "";
+
+        empresaForm.elements["cidade"].value =
+            empresa.cidade ?? "";
+
+        empresaForm.elements["estado"].value =
+            empresa.estado ?? "";
+
+        empresaForm.elements["representante_legal"].value =
+            empresa.representante_legal ?? "";
+
+
+        btnEmpresaSubmit.textContent =
+            "Salvar Alterações";
+
+
+        btnCancelarEdicao.style.display =
+            "inline-block";
+
+
+        empresaForm.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao editar empresa:",
+            erro
+        );
+
+        alert(
+            "Erro ao carregar os dados da empresa."
+        );
+    }
+
+}
+
+
+// ================================
+// CANCELAR EDIÇÃO
+// ================================
+
+btnCancelarEdicao.addEventListener(
+    "click",
+    () => {
+
+        empresaForm.reset();
+
+        sairDoModoEdicao();
 
     }
+);
+
+
+function sairDoModoEdicao() {
+
+    empresaEditandoId = null;
+
+    btnEmpresaSubmit.textContent =
+        "Cadastrar Empresa";
+
+    btnCancelarEdicao.style.display =
+        "none";
 
 }
 
@@ -342,7 +662,6 @@ async function excluirEmpresa(empresaId) {
     );
 
 
-    // Se clicar em Cancelar, não exclui
     if (!confirmar) {
         return;
     }
@@ -363,7 +682,6 @@ async function excluirEmpresa(empresaId) {
             throw new Error(
                 "Não foi possível excluir a empresa."
             );
-
         }
 
 
@@ -372,7 +690,6 @@ async function excluirEmpresa(empresaId) {
         );
 
 
-        // Atualiza a lista depois da exclusão
         carregarEmpresas();
 
 
@@ -387,7 +704,6 @@ async function excluirEmpresa(empresaId) {
         alert(
             "Erro ao excluir a empresa."
         );
-
     }
 
 }

@@ -387,6 +387,299 @@ body {
 }
 
 
+/* Botão secundário */
+
+.btn-secondary {
+    border: 1px solid #dce1e5;
+
+    padding: 11px 20px;
+
+    border-radius: 7px;
+
+    background-color: #ffffff;
+
+    color: #626a73;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: 0.2s;
+
+    margin-left: 10px;
+}
+
+.btn-secondary:hover {
+    background-color: #f4f6f8;
+}
+
+
+/* ================================
+   LISTAGEM DE EMPRESAS
+================================ */
+
+.empresas-lista-card {
+    margin-top: 24px;
+}
+
+#lista-empresas {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+
+/* ================================
+   CARD DA EMPRESA
+================================ */
+
+.empresa-item {
+    padding: 0;
+
+    border: 1px solid #dce5f5;
+
+    border-radius: 12px;
+
+    background-color: #ffffff;
+
+    overflow: hidden;
+
+    box-shadow: 0 3px 10px rgba(23, 70, 209, 0.06);
+
+    transition: 0.2s;
+}
+
+.empresa-item:hover {
+    box-shadow: 0 5px 16px rgba(23, 70, 209, 0.10);
+
+    transform: translateY(-1px);
+}
+
+
+/* ================================
+   RESUMO DA EMPRESA
+================================ */
+
+.empresa-resumo {
+    display: flex;
+
+    justify-content: space-between;
+
+    gap: 30px;
+
+    padding: 20px 22px;
+
+    border-left: 4px solid #1746d1;
+
+    background: linear-gradient(
+        90deg,
+        #f5f8ff,
+        #ffffff
+    );
+}
+
+.empresa-info-principal {
+    flex: 1;
+}
+
+.empresa-info-principal h3 {
+    margin: 0 0 7px;
+
+    font-size: 17px;
+
+    color: #1746d1;
+}
+
+.empresa-info-principal p {
+    margin: 5px 0;
+
+    font-size: 13px;
+
+    color: #626a73;
+}
+
+.empresa-contatos {
+    min-width: 280px;
+
+    padding-left: 20px;
+
+    border-left: 1px solid #e3eaf5;
+}
+
+.empresa-contatos p {
+    margin: 6px 0;
+
+    font-size: 12px;
+
+    color: #626a73;
+}
+
+.empresa-contatos strong {
+    color: #343a40;
+}
+
+
+/* ================================
+   BOTÃO VER DETALHES
+================================ */
+
+.btn-detalhes {
+    width: 100%;
+
+    padding: 11px 20px;
+
+    border: none;
+    border-top: 1px solid #e7edf7;
+
+    background-color: #f8faff;
+
+    color: #1746d1;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    text-align: left;
+
+    transition: 0.2s;
+}
+
+.btn-detalhes:hover {
+    background-color: #edf3ff;
+
+    color: #123bb3;
+}
+
+
+/* ================================
+   DETALHES DA EMPRESA
+================================ */
+
+.empresa-detalhes {
+    padding: 20px 22px;
+
+    background-color: #ffffff;
+
+    border-top: 1px solid #e7edf7;
+}
+
+.detalhes-secao {
+    margin-bottom: 20px;
+
+    padding: 17px;
+
+    border-radius: 9px;
+
+    background-color: #f8fafc;
+
+    border: 1px solid #e7ebf0;
+}
+
+.detalhes-secao:last-of-type {
+    margin-bottom: 0;
+}
+
+.detalhes-secao h4 {
+    margin-bottom: 14px;
+
+    font-size: 13px;
+
+    color: #1746d1;
+
+    padding-bottom: 8px;
+
+    border-bottom: 1px solid #dfe7f5;
+}
+
+.detalhes-secao p {
+    font-size: 12px;
+
+    line-height: 1.6;
+
+    color: #626a73;
+}
+
+.detalhes-secao strong {
+    color: #343a40;
+}
+
+
+/* ================================
+   GRID DOS DETALHES
+================================ */
+
+.detalhes-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 14px 25px;
+}
+
+.detalhes-grid p {
+    margin: 0;
+
+    padding: 9px 11px;
+
+    border-radius: 7px;
+
+    background-color: #ffffff;
+
+    border: 1px solid #e5eaf0;
+}
+
+.detalhes-grid strong {
+    font-size: 11px;
+
+    color: #7b838c;
+
+    text-transform: uppercase;
+}
+
+
+/* ================================
+   AÇÕES DA EMPRESA
+================================ */
+
+.empresa-acoes {
+    margin-top: 18px;
+
+    display: flex;
+
+    gap: 10px;
+
+    justify-content: flex-end;
+}
+
+.btn-excluir {
+    padding: 11px 20px;
+
+    border: none;
+
+    border-radius: 7px;
+
+    background-color: #dc3545;
+
+    color: #ffffff;
+
+    cursor: pointer;
+
+    font-size: 13px;
+
+    font-weight: 600;
+
+    transition: 0.2s;
+}
+
+.btn-excluir:hover {
+    background-color: #c82333;
+}
+
+
 /* ================================
    RESPONSIVIDADE
 ================================ */
@@ -406,56 +699,24 @@ body {
     .form-grid {
         grid-template-columns: 1fr;
     }
-}
 
-/* ================================
-   LISTAGEM DE EMPRESAS
-================================ */
+    .empresa-resumo {
+        flex-direction: column;
+    }
 
-.empresas-lista-card {
-    margin-top: 24px;
-}
+    .empresa-contatos {
+        min-width: 0;
 
-#lista-empresas {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
+        padding-left: 0;
 
-.empresa-item {
-    padding: 18px;
-    border: 1px solid #e1e7eb;
-    border-radius: 10px;
-    background: #ffffff;
-}
+        padding-top: 12px;
 
-.empresa-item h3 {
-    margin-top: 0;
-    margin-bottom: 12px;
-}
+        border-left: none;
 
-.empresa-item p {
-    margin: 6px 0;
-}
+        border-top: 1px solid #e3eaf5;
+    }
 
-/* ================================
-   AÇÕES DA EMPRESA
-================================ */
-
-.empresa-acoes {
-    margin-top: 16px;
-}
-
-.btn-excluir {
-    padding: 9px 16px;
-    border: none;
-    border-radius: 6px;
-    background: #dc3545;
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.btn-excluir:hover {
-    opacity: 0.9;
+    .detalhes-grid {
+        grid-template-columns: 1fr;
+    }
 }
