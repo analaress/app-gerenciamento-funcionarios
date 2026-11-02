@@ -1,0 +1,67 @@
+/* Tela de Rescisões do painel. Usa as classes do painel (form-card, form-grid, form-group,
+   form-actions, btn-primary) e acrescenta só o que é específico daqui (prefixo resc-). */
+
+.resc-oculto { display: none !important; }
+
+.resc-barra { margin: 0 0 1rem; }
+
+.resc-msg { padding: .75rem 1rem; border-radius: 8px; margin: 0 0 1rem; font-weight: 500; }
+.resc-msg.ok { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.resc-msg.erro { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+.resc-tabela { width: 100%; border-collapse: collapse; }
+.resc-tabela th, .resc-tabela td { padding: .7rem .8rem; border-bottom: 1px solid #e5e7eb; text-align: left; font-size: .95rem; }
+.resc-tabela th { font-weight: 600; color: #475569; background: #f8fafc; }
+.resc-valor { text-align: right !important; white-space: nowrap; }
+.resc-linha { cursor: pointer; }
+.resc-linha:hover, .resc-linha:focus { background: #eff6ff; outline: none; }
+.resc-dica { color: #64748b; font-size: .9rem; margin-top: .8rem; }
+
+.resc-badge { display: inline-block; padding: .2rem .65rem; border-radius: 999px; font-size: .8rem; font-weight: 600; margin-left: .3rem; }
+.resc-badge.PENDENTE { background: #e5e7eb; color: #374151; }
+.resc-badge.EM_CONFERENCIA { background: #fef3c7; color: #92400e; }
+.resc-badge.GERADO { background: #dbeafe; color: #1e40af; }
+.resc-badge.ENVIADO { background: #dcfce7; color: #166534; }
+.resc-badge.ERRO_GERACAO, .resc-badge.ERRO_ENVIO { background: #fee2e2; color: #991b1b; }
+
+.resc-acoes { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1rem 0; align-items: center; }
+.resc-btn { padding: .6rem 1rem; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #1e293b; cursor: pointer; font: inherit; text-decoration: none; display: inline-block; }
+.resc-btn:hover { background: #f1f5f9; }
+.resc-btn.principal { background: #2563eb; border-color: #2563eb; color: #fff; }
+.resc-btn.principal:hover { background: #1d4ed8; }
+.resc-btn[disabled] { opacity: .5; cursor: not-allowed; }
+.resc-envio input { flex: 1; min-width: 260px; padding: .6rem .8rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+
+.resc-resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .9rem 1.5rem; margin: 1.2rem 0; }
+.resc-resumo dt { font-size: .8rem; color: #64748b; }
+.resc-resumo dd { margin: .15rem 0 0; font-weight: 600; }
+
+.resc-totais { display: flex; flex-wrap: wrap; gap: 1rem; margin: 1.2rem 0; }
+.resc-total { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: .75rem 1.1rem; display: grid; gap: .15rem; min-width: 190px; }
+.resc-total span { font-size: .8rem; color: #64748b; }
+.resc-total strong { font-size: 1.15rem; }
+.resc-total.liquido { background: #ecfdf5; border-color: #a7f3d0; }
+
+.resc-grupo { margin: 1.4rem 0 .5rem; font-size: 1.05rem; color: #334155; }
+.resc-envios { padding-left: 1.2rem; margin: .4rem 0; }
+.resc-envios li { margin: .3rem 0; }
+
+.resc-verbas input { width: 100%; box-sizing: border-box; padding: .45rem .6rem; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+.resc-verbas td:nth-child(3) { width: 24%; }
+.resc-verbas td:nth-child(4) { width: 20%; }
+
+.resc-filtro { display: flex; align-items: center; gap: .5rem; margin: 0 0 1rem; color: #475569; font-size: .95rem; cursor: pointer; }
+.resc-filtro input { width: 1rem; height: 1rem; }
+.resc-abrir { color: #2563eb; font-weight: 600; white-space: nowrap; text-align: right !important; }
+
+.resc-aviso { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; border-radius: 8px; padding: .7rem 1rem; margin: 0 0 1rem; font-size: .92rem; }
+
+.resc-filtros { display: flex; flex-wrap: wrap; gap: .6rem; margin: 0 0 .6rem; }
+.resc-filtros input[type="search"] { flex: 1; min-width: 240px; padding: .6rem .8rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; }
+.resc-filtros select { padding: .6rem .8rem; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; background: #fff; }
+
+.resc-sugestao { display: flex; align-items: center; gap: .8rem; flex-wrap: wrap; margin: 1.2rem 0 .8rem; }
+.resc-sugestao .resc-dica { margin: 0; }
+#resc-sugestao-info ul { margin: .4rem 0 .4rem 1.2rem; padding: 0; }
+#resc-sugestao-info li { margin: .15rem 0; }
+#resc-sugestao-info p { margin: .4rem 0 0; }
