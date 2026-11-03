@@ -60,6 +60,29 @@ class RescisaoCriar(BaseModel):
         return itens
 
 
+class SugestaoEntrada(BaseModel):
+    """O que a tela envia para pedir sugestão de valores."""
+
+    colaborador_id: int
+    data_desligamento: date
+    causa_afastamento: str
+    # remuneração digitada no formulário; se vier vazia, usa o salário do cadastro do colaborador
+    remuneracao: Decimal | None = Field(default=None, ge=0, max_digits=12, decimal_places=2)
+
+
+class ItemSugerido(BaseModel):
+    codigo: int
+    descricao: str
+    valor: Decimal
+    referencia: str | None = None
+    explicacao: str  # "como foi calculado", para a pessoa conferir
+
+
+class SugestaoSaida(BaseModel):
+    itens: list[ItemSugerido]
+    avisos: list[str]
+
+
 class ItemSaida(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -91,3 +114,14 @@ class RescisaoSaida(BaseModel):
     status: StatusRescisao
     criado_em: datetime
     itens: list[ItemSaida]
+
+
+class EnvioSaida(BaseModel):
+    """Uma tentativa de envio do PDF por e-mail (sucesso ou falha)."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    destinatario: str
+    data: datetime
+    sucesso: bool
+    erro: str | None

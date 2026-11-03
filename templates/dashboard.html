@@ -8,6 +8,7 @@
     <title>Gerenciamento de Funcionários</title>
 
     <link rel="stylesheet" href="/static/dashboard.css">
+    <link rel="stylesheet" href="/static/rescisoes.css">
 </head>
 
 <body>
@@ -431,12 +432,103 @@
         <section id="rescisao" class="page">
 
             <header class="page-header">
-                <h1>Rescisões</h1>
+
+                <div>
+                    <h1>Rescisões</h1>
+                    <p>Crie a rescisão, confira os valores, gere o PDF e envie por e-mail.</p>
+                </div>
+
             </header>
 
-            <div class="form-card">
-                <h2>Rescisões cadastradas</h2>
-                <div id="lista-rescisoes"><p>Carregando...</p></div>
+            <div id="resc-mensagem" class="resc-msg resc-oculto"></div>
+
+            <div id="resc-barra" class="resc-barra">
+                <button type="button" class="btn-primary" id="resc-nova">+ Nova rescisão</button>
+            </div>
+
+
+            <!-- LISTA -->
+            <div class="form-card" id="resc-lista-card">
+                <h2>Rescisões em andamento</h2>
+                <label class="resc-filtro"><input type="checkbox" id="resc-mostrar-enviadas"> Mostrar também as já enviadas</label>
+                <div id="resc-lista"><p>Carregando...</p></div>
+            </div>
+
+
+            <!-- DETALHE -->
+            <div class="form-card resc-oculto" id="resc-detalhe-card">
+                <div id="resc-detalhe"></div>
+            </div>
+
+
+            <!-- FORMULÁRIO (nova rescisão / corrigir) -->
+            <div class="form-card resc-oculto" id="resc-form-card">
+
+                <h2 id="resc-form-titulo">Nova rescisão</h2>
+
+                <form id="resc-form" novalidate>
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+                            <label for="resc-colaborador">Colaborador</label>
+                            <select id="resc-colaborador"></select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="resc-data">Data de desligamento</label>
+                            <input type="date" id="resc-data">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="resc-aviso">Data do aviso prévio (opcional)</label>
+                            <input type="date" id="resc-aviso">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="resc-causa">Causa do afastamento</label>
+                            <select id="resc-causa"></select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="resc-codigo">Código do afastamento (opcional)</label>
+                            <input type="text" id="resc-codigo" maxlength="10">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="resc-remuneracao">Remuneração (vazio = salário do colaborador)</label>
+                            <input type="number" id="resc-remuneracao" min="0" step="0.01">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="resc-observacoes">Observações (opcional)</label>
+                            <input type="text" id="resc-observacoes">
+                        </div>
+
+                    </div>
+
+                    <div class="resc-sugestao">
+                        <button type="button" class="resc-btn principal" id="resc-sugerir">Sugerir valores</button>
+                        <span class="resc-dica">Preenche saldo de salário, 13º, férias proporcionais (+1/3) e FGTS 8% a partir do salário e das datas. Você confere e edita.</span>
+                    </div>
+                    <div id="resc-sugestao-info" class="resc-aviso resc-oculto"></div>
+
+                    <div id="resc-verbas"></div>
+
+                    <div class="resc-totais">
+                        <div class="resc-total"><span>Total bruto (46)</span><strong id="resc-t-prov">R$ 0,00</strong></div>
+                        <div class="resc-total"><span>Total das deduções (54)</span><strong id="resc-t-desc">R$ 0,00</strong></div>
+                        <div class="resc-total liquido"><span>Líquido a receber (55)</span><strong id="resc-t-liq">R$ 0,00</strong></div>
+                    </div>
+                    <p class="resc-dica">Os totais acima são só uma prévia. O sistema recalcula tudo ao salvar.</p>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn-primary" id="resc-salvar">Salvar rescisão</button>
+                        <button type="button" class="resc-btn" id="resc-cancelar">Cancelar</button>
+                    </div>
+
+                </form>
+
             </div>
 
         </section>
@@ -454,7 +546,27 @@
 
             <div class="form-card">
                 <h2>Histórico de documentos</h2>
-                <div id="lista-historico"><p>Carregando...</p></div>
+
+                <div class="resc-filtros">
+                    <input type="search" id="resc-h-busca" placeholder="Buscar por nome, CPF ou empresa" aria-label="Buscar por nome, CPF ou empresa">
+                    <select id="resc-h-tipo" aria-label="Tipo de documento">
+                        <option value="">Todos os tipos</option>
+                        <option value="RESCISAO">Rescisão</option>
+                    </select>
+                    <select id="resc-h-status" aria-label="Status">
+                        <option value="">Todos os status</option>
+                        <option value="EM_CONFERENCIA">Em conferência</option>
+                        <option value="GERADO">Gerado</option>
+                        <option value="ENVIADO">Enviado</option>
+                        <option value="ERRO_GERACAO">Erro ao gerar</option>
+                        <option value="ERRO_ENVIO">Erro no envio</option>
+                        <option value="PENDENTE">Pendente</option>
+                    </select>
+                    <button type="button" class="resc-btn" id="resc-h-limpar">Limpar filtros</button>
+                </div>
+                <p class="resc-dica" id="resc-h-contagem"></p>
+
+                <div id="resc-historico"><p>Carregando...</p></div>
             </div>
 
         </section>
@@ -464,6 +576,7 @@
 
     <!-- JAVASCRIPT -->
     <script src="/static/dashboard.js"></script>
+    <script src="/static/rescisoes.js"></script>
 
 </body>
 

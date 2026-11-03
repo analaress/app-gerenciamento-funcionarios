@@ -1,9 +1,8 @@
-
 from datetime import date, datetime
 from decimal import Decimal
 from enum import Enum
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, JSON, Numeric, String
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, JSON, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -26,6 +25,9 @@ class TipoItem(str, Enum):
 
 P, D, I = TipoItem.PROVENTO, TipoItem.DESCONTO, TipoItem.INFORMATIVO
 
+# Decisão da Ana: as verbas 41 (Horas faltas parcial) e 45 (Faltas) ENTRAM no líquido. Como são faltas,
+# elas são tratadas como DESCONTO (diminuem o líquido). Se for para SOMAR ao bruto, troque o D por P.
+# As verbas de FGTS (42, 43 e 44) continuam informativas: aparecem no documento e ficam fora do líquido.
 RUBRICAS: dict[int, tuple[str, TipoItem]] = {
     29: ("Aviso Prévio Indenizado", P), 30: ("Saldo de Salário", P),
     31: ("13º Salário", P), 32: ("13º Salário Inden.", P),
@@ -33,9 +35,9 @@ RUBRICAS: dict[int, tuple[str, TipoItem]] = {
     35: ("Férias proporc.", P), 36: ("1/3 sob férias proporc.", P),
     37: ("Outras verbas rescisórias", P), 38: ("1/3 sob férias indenizada", P),
     39: ("Reflexo extras DSR", P), 40: ("Horas extras", P),
-    41: ("Horas faltas parcial", I), 42: ("FGTS 8%", I),
+    41: ("Horas faltas parcial", D), 42: ("FGTS 8%", I),
     43: ("FGTS multa rescis.", I), 44: ("FGTS mês rescisão/mês anterior", I),
-    45: ("Faltas", I), 47: ("Previdência", D), 48: ("Previdência 13º salário", D),
+    45: ("Faltas", D), 47: ("Previdência", D), 48: ("Previdência 13º salário", D),
     49: ("Adiantamentos", D), 50: ("IRRF", D), 51: ("Aviso Prévio", D),
     52: ("Faltas", D), 53: ("Outros descontos", D),
 }
@@ -62,3 +64,16 @@ class Rescisao(Base):
     caminho_pdf: Mapped[str | None] = mapped_column(String(500))
     itens: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
     criado_em: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+
+
+class EnvioRescisao(Base):
+    """Cada tentativa de envio do PDF da rescisão por e-mail (sucesso ou falha)."""
+
+    __tablename__ = "envios_rescisao"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    rescisao_id: Mapped[int] = mapped_column(ForeignKey("rescisoes.id"), nullable=False, index=True)
+    destinatario: Mapped[str] = mapped_column(String(150), nullable=False)
+    data: Mapped[datetime] = mapped_column(DateTime, default=datetime.now, nullable=False)
+    sucesso: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    erro: Mapped[str | None] = mapped_column(Text, nullable=True)
